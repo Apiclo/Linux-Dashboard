@@ -1,0 +1,114 @@
+2026-06-21 07:47:18,584 [INFO] backend: ✓ Sudo/root access verified
+[WARN] flask-sock not installed — WebSocket chroot disabled. pip install flask-sock
+
+  ╔═══════════════════════════════════════════════╗
+  ║         Linux Toolbox Backend v3.0             ║
+  ╠═══════════════════════════════════════════════╣
+  ║  API:     http://127.0.0.1:5000               ║
+  ║  Auth:    Linux PAM                            ║
+  ║  Frontend: http://127.0.0.1:5000              ║
+  ╚═══════════════════════════════════════════════╝
+
+ * Serving Flask app 'main'
+ * Debug mode: off
+2026-06-21 07:47:18,636 [INFO] werkzeug: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://198.18.0.1:5000
+2026-06-21 07:47:18,636 [INFO] werkzeug: [33mPress CTRL+C to quit[0m
+2026-06-21 07:47:21,169 [INFO] werkzeug: 127.0.0.1 - - [21/Jun/2026 07:47:21] "GET /api/auth/status HTTP/1.1" 200 -
+2026-06-21 07:47:21,173 [INFO] werkzeug: 127.0.0.1 - - [21/Jun/2026 07:47:21] "GET /api/auth/status HTTP/1.1" 200 -
+2026-06-21 07:47:21,181 [INFO] werkzeug: 127.0.0.1 - - [21/Jun/2026 07:47:21] "[31m[1mGET /api/system/distro HTTP/1.1[0m" 401 -
+2026-06-21 07:49:16,557 [INFO] werkzeug: 127.0.0.1 - - [21/Jun/2026 07:49:16] "GET /api/auth/status HTTP/1.1" 200 -
+2026-06-21 07:49:16,570 [INFO] werkzeug: 127.0.0.1 - - [21/Jun/2026 07:49:16] "[31m[1mGET /api/system/distro HTTP/1.1[0m" 401 -
+2026-06-21 07:49:59,433 [INFO] werkzeug: 127.0.0.1 - - [21/Jun/2026 07:49:59] "GET /api/auth/status HTTP/1.1" 200 -
+2026-06-21 07:49:59,447 [INFO] werkzeug: 127.0.0.1 - - [21/Jun/2026 07:49:59] "[31m[1mGET /api/system/distro HTTP/1.1[0m" 401 -
+2026-06-21 07:52:40,221 [INFO] auth: PAM auth success: root
+2026-06-21 07:52:40,221 [INFO] backend: Login: root from 127.0.0.1
+2026-06-21 07:52:40,222 [INFO] werkzeug: 127.0.0.1 - - [21/Jun/2026 07:52:40] "POST /api/auth/login HTTP/1.1" 200 -
+2026-06-21 07:52:40,451 [INFO] werkzeug: 127.0.0.1 - - [21/Jun/2026 07:52:40] "GET /api/system/distro HTTP/1.1" 200 -
+2026-06-21 07:52:40,458 [INFO] werkzeug: 127.0.0.1 - - [21/Jun/2026 07:52:40] "GET /api/system/grub-cmdline-presets HTTP/1.1" 200 -
+2026-06-21 07:52:40,461 [INFO] werkzeug: 127.0.0.1 - - [21/Jun/2026 07:52:40] "GET /api/system/optimization-profiles HTTP/1.1" 200 -
+2026-06-21 07:52:40,466 [INFO] werkzeug: 127.0.0.1 - - [21/Jun/2026 07:52:40] "GET /api/system/grub-config HTTP/1.1" 200 -
+2026-06-21 07:52:40,468 [INFO] werkzeug: 127.0.0.1 - - [21/Jun/2026 07:52:40] "GET /api/system/locales HTTP/1.1" 200 -
+2026-06-21 07:52:40,470 [INFO] werkzeug: 127.0.0.1 - - [21/Jun/2026 07:52:40] "GET /api/system/cpu-governor HTTP/1.1" 200 -
+2026-06-21 07:52:40,474 [INFO] werkzeug: 127.0.0.1 - - [21/Jun/2026 07:52:40] "GET /api/hosts HTTP/1.1" 200 -
+2026-06-21 07:52:40,478 [INFO] werkzeug: 127.0.0.1 - - [21/Jun/2026 07:52:40] "GET /api/system/ssh HTTP/1.1" 200 -
+2026-06-21 07:52:40,482 [INFO] werkzeug: 127.0.0.1 - - [21/Jun/2026 07:52:40] "GET /api/system/io-scheduler HTTP/1.1" 200 -
+2026-06-21 07:52:40,486 [INFO] werkzeug: 127.0.0.1 - - [21/Jun/2026 07:52:40] "GET /api/system/ulimits HTTP/1.1" 200 -
+2026-06-21 07:52:40,490 [INFO] werkzeug: 127.0.0.1 - - [21/Jun/2026 07:52:40] "GET /api/system/swap HTTP/1.1" 200 -
+2026-06-21 07:52:40,494 [INFO] werkzeug: 127.0.0.1 - - [21/Jun/2026 07:52:40] "GET /api/system/grub-cmdline-presets HTTP/1.1" 200 -
+2026-06-21 07:52:40,498 [INFO] werkzeug: 127.0.0.1 - - [21/Jun/2026 07:52:40] "GET /api/system/users HTTP/1.1" 200 -
+2026-06-21 07:52:40,500 [INFO] werkzeug: 127.0.0.1 - - [21/Jun/2026 07:52:40] "GET /api/system/modules HTTP/1.1" 200 -
+2026-06-21 07:52:40,504 [INFO] werkzeug: 127.0.0.1 - - [21/Jun/2026 07:52:40] "GET /api/system/optimization-profiles HTTP/1.1" 200 -
+2026-06-21 07:52:40,512 [INFO] werkzeug: 127.0.0.1 - - [21/Jun/2026 07:52:40] "GET /api/system/grub-config HTTP/1.1" 200 -
+2026-06-21 07:52:40,519 [INFO] werkzeug: 127.0.0.1 - - [21/Jun/2026 07:52:40] "GET /api/sysctl HTTP/1.1" 200 -
+2026-06-21 07:52:40,522 [INFO] werkzeug: 127.0.0.1 - - [21/Jun/2026 07:52:40] "GET /api/system/logs?lines=100&unit=&priority= HTTP/1.1" 200 -
+2026-06-21 07:52:40,527 [INFO] werkzeug: 127.0.0.1 - - [21/Jun/2026 07:52:40] "GET /api/system/cpu-governor HTTP/1.1" 200 -
+2026-06-21 07:52:40,536 [INFO] werkzeug: 127.0.0.1 - - [21/Jun/2026 07:52:40] "GET /api/system/io-scheduler HTTP/1.1" 200 -
+2026-06-21 07:52:40,537 [INFO] werkzeug: 127.0.0.1 - - [21/Jun/2026 07:52:40] "GET /api/system/timezones HTTP/1.1" 200 -
+2026-06-21 07:52:40,542 [INFO] werkzeug: 127.0.0.1 - - [21/Jun/2026 07:52:40] "GET /api/system/info HTTP/1.1" 200 -
+2026-06-21 07:52:40,555 [INFO] werkzeug: 127.0.0.1 - - [21/Jun/2026 07:52:40] "GET /api/system/ntp HTTP/1.1" 200 -
+2026-06-21 07:52:40,629 [INFO] werkzeug: 127.0.0.1 - - [21/Jun/2026 07:52:40] "GET /api/system/optimization-preview?profile=server HTTP/1.1" 200 -
+2026-06-21 07:52:40,829 [INFO] werkzeug: 127.0.0.1 - - [21/Jun/2026 07:52:40] "GET /api/system/optimization-preview?profile=server HTTP/1.1" 200 -
+2026-06-21 07:52:42,260 [INFO] werkzeug: 127.0.0.1 - - [21/Jun/2026 07:52:42] "GET /api/auth/status HTTP/1.1" 200 -
+2026-06-21 07:52:42,263 [INFO] werkzeug: 127.0.0.1 - - [21/Jun/2026 07:52:42] "GET /api/auth/status HTTP/1.1" 200 -
+2026-06-21 07:52:42,274 [INFO] werkzeug: 127.0.0.1 - - [21/Jun/2026 07:52:42] "GET /api/system/distro HTTP/1.1" 200 -
+2026-06-21 07:52:42,357 [INFO] werkzeug: 127.0.0.1 - - [21/Jun/2026 07:52:42] "GET /api/system/optimization-profiles HTTP/1.1" 200 -
+2026-06-21 07:52:42,357 [INFO] werkzeug: 127.0.0.1 - - [21/Jun/2026 07:52:42] "GET /api/system/grub-cmdline-presets HTTP/1.1" 200 -
+2026-06-21 07:52:42,360 [INFO] werkzeug: 127.0.0.1 - - [21/Jun/2026 07:52:42] "GET /api/system/grub-config HTTP/1.1" 200 -
+2026-06-21 07:52:42,367 [INFO] werkzeug: 127.0.0.1 - - [21/Jun/2026 07:52:42] "GET /api/system/locales HTTP/1.1" 200 -
+2026-06-21 07:52:42,368 [INFO] werkzeug: 127.0.0.1 - - [21/Jun/2026 07:52:42] "GET /api/system/cpu-governor HTTP/1.1" 200 -
+2026-06-21 07:52:42,369 [INFO] werkzeug: 127.0.0.1 - - [21/Jun/2026 07:52:42] "GET /api/system/io-scheduler HTTP/1.1" 200 -
+2026-06-21 07:52:42,375 [INFO] werkzeug: 127.0.0.1 - - [21/Jun/2026 07:52:42] "GET /api/hosts HTTP/1.1" 200 -
+2026-06-21 07:52:42,375 [INFO] werkzeug: 127.0.0.1 - - [21/Jun/2026 07:52:42] "GET /api/system/ssh HTTP/1.1" 200 -
+2026-06-21 07:52:42,379 [INFO] werkzeug: 127.0.0.1 - - [21/Jun/2026 07:52:42] "GET /api/system/timezones HTTP/1.1" 200 -
+2026-06-21 07:52:42,385 [INFO] werkzeug: 127.0.0.1 - - [21/Jun/2026 07:52:42] "GET /api/system/ulimits HTTP/1.1" 200 -
+2026-06-21 07:52:42,385 [INFO] werkzeug: 127.0.0.1 - - [21/Jun/2026 07:52:42] "GET /api/system/info HTTP/1.1" 200 -
+2026-06-21 07:52:42,386 [INFO] werkzeug: 127.0.0.1 - - [21/Jun/2026 07:52:42] "GET /api/system/swap HTTP/1.1" 200 -
+2026-06-21 07:52:42,390 [INFO] werkzeug: 127.0.0.1 - - [21/Jun/2026 07:52:42] "GET /api/system/users HTTP/1.1" 200 -
+2026-06-21 07:52:42,394 [INFO] werkzeug: 127.0.0.1 - - [21/Jun/2026 07:52:42] "GET /api/system/optimization-profiles HTTP/1.1" 200 -
+2026-06-21 07:52:42,395 [INFO] werkzeug: 127.0.0.1 - - [21/Jun/2026 07:52:42] "GET /api/system/modules HTTP/1.1" 200 -
+2026-06-21 07:52:42,397 [INFO] werkzeug: 127.0.0.1 - - [21/Jun/2026 07:52:42] "GET /api/system/grub-cmdline-presets HTTP/1.1" 200 -
+2026-06-21 07:52:42,403 [INFO] werkzeug: 127.0.0.1 - - [21/Jun/2026 07:52:42] "GET /api/system/ntp HTTP/1.1" 200 -
+2026-06-21 07:52:42,406 [INFO] werkzeug: 127.0.0.1 - - [21/Jun/2026 07:52:42] "GET /api/system/grub-config HTTP/1.1" 200 -
+2026-06-21 07:52:42,410 [INFO] werkzeug: 127.0.0.1 - - [21/Jun/2026 07:52:42] "GET /api/system/cpu-governor HTTP/1.1" 200 -
+2026-06-21 07:52:42,415 [INFO] werkzeug: 127.0.0.1 - - [21/Jun/2026 07:52:42] "GET /api/sysctl HTTP/1.1" 200 -
+2026-06-21 07:52:42,416 [INFO] werkzeug: 127.0.0.1 - - [21/Jun/2026 07:52:42] "GET /api/system/logs?lines=100&unit=&priority= HTTP/1.1" 200 -
+2026-06-21 07:52:42,419 [INFO] werkzeug: 127.0.0.1 - - [21/Jun/2026 07:52:42] "GET /api/system/io-scheduler HTTP/1.1" 200 -
+2026-06-21 07:52:42,514 [INFO] werkzeug: 127.0.0.1 - - [21/Jun/2026 07:52:42] "GET /api/system/optimization-preview?profile=server HTTP/1.1" 200 -
+2026-06-21 07:52:42,615 [INFO] werkzeug: 127.0.0.1 - - [21/Jun/2026 07:52:42] "GET /api/system/optimization-preview?profile=server HTTP/1.1" 200 -
+2026-06-21 07:52:49,626 [INFO] werkzeug: 127.0.0.1 - - [21/Jun/2026 07:52:49] "GET /api/packages/software HTTP/1.1" 200 -
+2026-06-21 07:52:49,630 [INFO] werkzeug: 127.0.0.1 - - [21/Jun/2026 07:52:49] "GET /api/system/distro HTTP/1.1" 200 -
+2026-06-21 07:52:50,848 [INFO] werkzeug: 127.0.0.1 - - [21/Jun/2026 07:52:50] "GET /api/config/presets HTTP/1.1" 200 -
+2026-06-21 07:52:52,537 [INFO] werkzeug: 127.0.0.1 - - [21/Jun/2026 07:52:52] "GET /api/gpu/offline/list HTTP/1.1" 200 -
+2026-06-21 07:52:52,682 [INFO] werkzeug: 127.0.0.1 - - [21/Jun/2026 07:52:52] "GET /api/gpu/detect HTTP/1.1" 200 -
+2026-06-21 07:52:53,548 [INFO] werkzeug: 127.0.0.1 - - [21/Jun/2026 07:52:53] "GET /api/config/presets HTTP/1.1" 200 -
+2026-06-21 07:52:55,366 [INFO] werkzeug: 127.0.0.1 - - [21/Jun/2026 07:52:55] "POST /api/config/read HTTP/1.1" 200 -
+2026-06-21 07:52:55,429 [INFO] werkzeug: 127.0.0.1 - - [21/Jun/2026 07:52:55] "GET /api/gpu/cuda/versions HTTP/1.1" 200 -
+2026-06-21 07:52:55,529 [INFO] werkzeug: 127.0.0.1 - - [21/Jun/2026 07:52:55] "GET /api/gpu/nvidia/versions HTTP/1.1" 200 -
+2026-06-21 07:52:57,025 [INFO] werkzeug: 127.0.0.1 - - [21/Jun/2026 07:52:57] "POST /api/config/read HTTP/1.1" 200 -
+2026-06-21 07:52:58,796 [INFO] werkzeug: 127.0.0.1 - - [21/Jun/2026 07:52:58] "POST /api/config/read HTTP/1.1" 200 -
+2026-06-21 07:53:01,741 [INFO] werkzeug: 127.0.0.1 - - [21/Jun/2026 07:53:01] "POST /api/config/read HTTP/1.1" 200 -
+2026-06-21 07:53:01,760 [INFO] werkzeug: 127.0.0.1 - - [21/Jun/2026 07:53:01] "POST /api/config/setparam HTTP/1.1" 200 -
+2026-06-21 07:53:04,131 [INFO] werkzeug: 127.0.0.1 - - [21/Jun/2026 07:53:04] "GET /api/rescue/iso/mounted HTTP/1.1" 200 -
+2026-06-21 07:53:04,134 [INFO] werkzeug: 127.0.0.1 - - [21/Jun/2026 07:53:04] "GET /api/rescue/iso/repo-status HTTP/1.1" 200 -
+2026-06-21 07:53:04,143 [INFO] werkzeug: 127.0.0.1 - - [21/Jun/2026 07:53:04] "GET /api/rescue/chroot/status?root=/mnt HTTP/1.1" 200 -
+2026-06-21 07:53:20,789 [INFO] werkzeug: 127.0.0.1 - - [21/Jun/2026 07:53:20] "POST /api/rescue/chroot/prepare HTTP/1.1" 200 -
+2026-06-21 07:53:20,811 [INFO] werkzeug: 127.0.0.1 - - [21/Jun/2026 07:53:20] "GET /api/rescue/chroot/status?root=/mnt HTTP/1.1" 200 -
+2026-06-21 07:53:25,487 [INFO] werkzeug: 127.0.0.1 - - [21/Jun/2026 07:53:25] "GET /api/gpu/cuda/versions HTTP/1.1" 200 -
+2026-06-21 07:53:25,488 [INFO] werkzeug: 127.0.0.1 - - [21/Jun/2026 07:53:25] "GET /api/gpu/offline/list HTTP/1.1" 200 -
+2026-06-21 07:53:25,488 [INFO] werkzeug: 127.0.0.1 - - [21/Jun/2026 07:53:25] "GET /api/gpu/nvidia/versions HTTP/1.1" 200 -
+2026-06-21 07:53:25,635 [INFO] werkzeug: 127.0.0.1 - - [21/Jun/2026 07:53:25] "GET /api/gpu/detect HTTP/1.1" 200 -
+2026-06-21 07:53:32,806 [INFO] werkzeug: 127.0.0.1 - - [21/Jun/2026 07:53:32] "GET /api/disk/fstab HTTP/1.1" 200 -
+2026-06-21 07:53:32,809 [INFO] werkzeug: 127.0.0.1 - - [21/Jun/2026 07:53:32] "GET /api/disk/usage HTTP/1.1" 200 -
+2026-06-21 07:53:32,810 [INFO] werkzeug: 127.0.0.1 - - [21/Jun/2026 07:53:32] "GET /api/raid/arrays HTTP/1.1" 200 -
+2026-06-21 07:53:32,812 [INFO] werkzeug: 127.0.0.1 - - [21/Jun/2026 07:53:32] "GET /api/raid/devices HTTP/1.1" 200 -
+2026-06-21 07:53:32,813 [INFO] werkzeug: 127.0.0.1 - - [21/Jun/2026 07:53:32] "GET /api/disk/devices HTTP/1.1" 200 -
+2026-06-21 07:53:37,678 [INFO] werkzeug: 127.0.0.1 - - [21/Jun/2026 07:53:37] "GET /api/services HTTP/1.1" 200 -
+2026 07:53:32] "GET /api/raid/devices HTTP/1.1" 200 -
+2026-06-21 07:53:32,813 [INFO] werkzeug: 127.0.0.1 - - [21/Jun/2026 07:53:32] "GET /api/disk/devices HTTP/1.1" 200 -
+2026-06-21 07:53:37,678 [INFO] werkzeug: 127.0.0.1 - - [21/Jun/2026 07:53:37] "GET /api/services HTTP/1.1" 200 -
+2026-06-21 08:00:27,574 [WARNING] backend: ⚠ Backend user has NO passwordless sudo and is NOT root. Write operations (mount, install, etc.) will FAIL.
+2026-06-21 08:00:27,574 [WARNING] backend:   Fix: run as root, OR add to /etc/sudoers.d/linux-toolbox:
+2026-06-21 08:00:27,574 [WARNING] backend:     apiclo ALL=(ALL) NOPASSWD: ALL

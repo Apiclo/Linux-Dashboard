@@ -1,0 +1,14 @@
+
+  VITE v5.4.21  ready in 282 ms
+
+  ➜  Local:   http://localhost:5173/
+  ➜  Network: http://192.168.70.123:5173/
+  ➜  Network: http://100.109.183.113:5173/
+  ➜  Network: http://192.168.50.2:5173/
+  ➜  Network: http://192.168.16.1:5173/
+  ➜  Network: http://192.168.8.1:5173/
+  ➜  Network: http://192.168.192.3:5173/
+  ➜  Network: http://198.18.0.1:5173/
+07:49:16 [vite] page reload index.html
+07:49:27 [vite] hmr update /src/components/layout/AppSidebar.vue, /src/styles/global.css
+07:49:59 [vite] page reload src/router/index.ts

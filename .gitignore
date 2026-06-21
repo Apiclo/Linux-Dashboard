@@ -1,4 +1,4 @@
-
+/log
 /backend/routes/__pycache__
 *.pyc
 /frontend/dist

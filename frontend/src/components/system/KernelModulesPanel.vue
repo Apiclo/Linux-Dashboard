@@ -28,7 +28,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { systemApi } from '@/api/system'
 import { useToast } from '@/composables/useToast'
 import { useConfirm } from '@/composables/useConfirm'
@@ -57,7 +57,7 @@ async function load() {
   try {
     const r = await systemApi.getModules()
     modules.value = r.modules || []
-  } catch { /* ignore */ }
+  } catch { toast.error("内核模块加载失败") }
 }
 
 async function doManageModule(name: string, action: string) {
@@ -70,6 +70,7 @@ async function doManageModule(name: string, action: string) {
 }
 
 defineExpose({ load })
+onMounted(load)
 </script>
 
 <style scoped>

@@ -1,11 +1,28 @@
 #!/bin/bash
 # ──────────────────────────────────────────────
-# PenguinFu - Start Script
+# TuxTackleBox - Start Script
 # ──────────────────────────────────────────────
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 cd "$SCRIPT_DIR"
+
+# ── 自动提升权限 ──
+if [ "$EUID" -ne 0 ] && [ "$1" != "--no-sudo" ]; then
+    if command -v sudo &>/dev/null && sudo -n true 2>/dev/null; then
+        echo "→ 已有 passwordless sudo，以 root 重新执行..."
+        exec sudo bash "$0" "$@"
+    elif command -v sudo &>/dev/null; then
+        echo "TuxTackleBox 需要 root 权限进行系统管理操作。"
+        echo "PAM 认证需要读取 /etc/shadow（root 权限）。"
+        exec sudo bash "$0" "$@"
+    else
+        echo "⚠ 未以 root 运行，且 sudo 不可用。"
+        echo "  PAM 认证可能失败（无法读取 /etc/shadow）。"
+        echo "  安装 sudo 或以 root 运行: su -c '$0'"
+        echo ""
+    fi
+fi
 
 # Read config
 BACKEND_PORT=$(python3 -c "import json; print(json.load(open('config.json'))['backend']['port'])" 2>/dev/null || echo 5000)
@@ -37,12 +54,20 @@ trap cleanup EXIT INT TERM
 setup_backend() {
     if [ ! -d "backend/venv" ]; then
         echo "Creating Python venv..."
-        python3 -m venv backend/venv
+        python3 -m venv --copies backend/venv || {
+            echo "ERROR: Failed to create venv. Install python3-venv: sudo apt install python3-venv"
+            exit 1
+        }
+    fi
+    if [ ! -f "backend/venv/bin/python" ]; then
+        echo "ERROR: venv appears broken. Remove it and retry: rm -rf backend/venv"
+        exit 1
     fi
     source backend/venv/bin/activate
     echo "Installing Python dependencies..."
-    pip install -r backend/requirements.txt -q 2>/dev/null
-    deactivate
+    pip install --upgrade pip -q 2>/dev/null
+    pip install -r backend/requirements.txt -q
+    deactivate 2>/dev/null || true
 }
 
 # ── Frontend setup ──
@@ -109,7 +134,7 @@ build_frontend() {
 # ── Main ──
 echo ""
 echo "  ╔═══════════════════════════════════════╗"
-echo "  ║          PenguinFu v0.1.1-dev          ║"
+echo "  ║          TuxTackleBox v0.1.1-dev          ║"
 echo "  ╚═══════════════════════════════════════╝"
 echo ""
 

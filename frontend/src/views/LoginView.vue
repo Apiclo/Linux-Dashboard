@@ -13,12 +13,12 @@
 
       <el-form @submit.prevent="handleLogin" class="login-form">
         <el-form-item label="用户名">
-          <el-input v-model="username" placeholder="root" size="large" @keyup.enter="handleLogin" autofocus :disabled="loading" :prefix-icon="User" />
+          <el-input v-model="username" placeholder="root" size="default" @keyup.enter="handleLogin" autofocus :disabled="loading" :prefix-icon="User" />
         </el-form-item>
         <el-form-item label="密码">
-          <el-input v-model="password" type="password" show-password placeholder="输入密码" size="large" @keyup.enter="handleLogin" :disabled="loading" :prefix-icon="Lock" />
+          <el-input v-model="password" type="password" show-password placeholder="输入密码" size="default" @keyup.enter="handleLogin" :disabled="loading" :prefix-icon="Lock" />
         </el-form-item>
-        <el-button type="primary" size="large" class="login-btn" @click="handleLogin" :loading="loading" :disabled="!username || !password">
+        <el-button type="primary" size="default" class="login-btn" @click="handleLogin" :loading="loading" :disabled="!username || !password">
           {{ loading ? '登录中...' : '登录' }}
         </el-button>
       </el-form>
@@ -31,7 +31,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { User, Lock } from '@element-plus/icons-vue'
 import { useAuth } from '@/composables/useAuth'
@@ -41,6 +41,9 @@ const { login, loading } = useAuth()
 const username = ref('')
 const password = ref('')
 const error = ref('')
+
+// Clear error when user modifies input
+watch([username, password], () => { error.value = '' })
 
 async function handleLogin() {
   if (!username.value || !password.value) return

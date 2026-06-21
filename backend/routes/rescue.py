@@ -2,7 +2,7 @@
 import os
 from typing import List, Tuple
 from flask import Blueprint, jsonify, request, session
-from utils.helpers import safe_api, validate_json, require_auth, run_cmd, safe_quote
+from utils.helpers import safe_api, validate_json, require_auth, run_cmd, safe_quote, safe_temp_file
 from utils.tasks import start_task
 from core import rescue, distro
 
@@ -39,13 +39,13 @@ def iso_mount(data):
     if code != 0:
         return jsonify({"success": False, "message": out})
 
-    result = {"success": True, "message": f"ISO 已挂载到 {mp}"}
+    result = {"success": True, "message": f"ISO 已挂载到 {real_mp}"}
 
     if configure:
         d = distro.detect_distro()
-        from core.gpu import _resolve_distro_family
-        family = _resolve_distro_family(d)
-        ok, msg = rescue.configure_local_repo(mp, family)
+        from core.gpu import resolve_distro_family
+        family = resolve_distro_family(d)
+        ok, msg = rescue.configure_local_repo(real_mp, family)
         result["repo_configured"] = ok
         result["repo_message"] = msg
         result["distro_family"] = family
@@ -65,8 +65,8 @@ def iso_umount(data):
 
     if remove_repo:
         d = distro.detect_distro()
-        from core.gpu import _resolve_distro_family
-        family = _resolve_distro_family(d)
+        from core.gpu import resolve_distro_family
+        family = resolve_distro_family(d)
         rescue.remove_local_repo(family)
 
     out, code = rescue.umount_iso(mp)
@@ -96,8 +96,8 @@ def iso_mounted():
 @require_auth
 def iso_repo_status():
     d = distro.detect_distro()
-    from core.gpu import _resolve_distro_family
-    family = _resolve_distro_family(d)
+    from core.gpu import resolve_distro_family
+    family = resolve_distro_family(d)
     return jsonify(rescue.get_repo_status(family))
 
 
@@ -106,8 +106,8 @@ def iso_repo_status():
 @require_auth
 def iso_remove_repo():
     d = distro.detect_distro()
-    from core.gpu import _resolve_distro_family
-    family = _resolve_distro_family(d)
+    from core.gpu import resolve_distro_family
+    family = resolve_distro_family(d)
     ok, msg = rescue.remove_local_repo(family)
     return jsonify({"success": ok, "message": msg})
 
@@ -165,9 +165,124 @@ def chroot_exec(data):
     # 将命令写入临时脚本，避免 bash -c 注入风险
     tmp = safe_temp_file(content=cmd)
     out, code = run_cmd(
-        f"sudo cp {safe_quote(tmp)} {safe_quote(root)}/tmp/_penguinfu_cmd.sh && "
-        f"sudo chroot {safe_quote(root)} /bin/bash /tmp/_penguinfu_cmd.sh",
+        f"sudo cp {safe_quote(tmp)} {safe_quote(root)}/tmp/_tuxtacklebox_cmd.sh && "
+        f"sudo chroot {safe_quote(root)} /bin/bash /tmp/_tuxtacklebox_cmd.sh",
         timeout=30
     )
-    run_cmd(f"sudo rm -f {safe_quote(root)}/tmp/_penguinfu_cmd.sh 2>/dev/null", timeout=5)
+    run_cmd(f"sudo rm -f {safe_quote(root)}/tmp/_tuxtacklebox_cmd.sh 2>/dev/null", timeout=5)
     return jsonify({"success": code == 0, "output": out, "exit_code": code})
+
+
+# ═══════════════════ SFTP 挂载 ═══════════════════
+
+@bp.route("/api/rescue/sftp/check")
+@safe_api
+@require_auth
+def sftp_check():
+    ok, msg = rescue.check_sshfs()
+    return jsonify({"available": ok, "message": msg})
+
+
+@bp.route("/api/rescue/sftp/mount", methods=["POST"])
+@safe_api
+@require_auth
+@validate_json(["host", "remote_path", "mount_point"])
+def sftp_mount(data):
+    ok, mp = _validate_mount_path(data["mount_point"], ALLOWED_MOUNT_PREFIXES)
+    if not ok:
+        return jsonify({"success": False, "message": mp}), 400
+    host = data["host"].strip()
+    if not host or len(host) > 256:
+        return jsonify({"success": False, "message": "Invalid host"}), 400
+    out, code = rescue.mount_sftp(
+        host=host,
+        remote_path=data["remote_path"].strip(),
+        mount_point=mp,
+        port=data.get("port", 22),
+        user=data.get("user", "root"),
+        options=data.get("options", ""),
+        key_file=data.get("key_file", ""),
+    )
+    return jsonify({"success": code == 0, "message": out or "已挂载"})
+
+
+@bp.route("/api/rescue/sftp/umount", methods=["POST"])
+@safe_api
+@require_auth
+@validate_json(["mount_point"])
+def sftp_umount(data):
+    ok, mp = _validate_mount_path(data["mount_point"], ALLOWED_MOUNT_PREFIXES)
+    if not ok:
+        return jsonify({"success": False, "message": mp}), 400
+    out, code = rescue.umount_sftp(mp)
+    return jsonify({"success": code == 0, "message": out or "已卸载"})
+
+
+@bp.route("/api/rescue/sftp/mounted")
+@safe_api
+@require_auth
+def sftp_mounted():
+    return jsonify({"mounts": rescue.get_sftp_mounts()})
+
+
+@bp.route("/api/rescue/browse")
+@safe_api
+@require_auth
+def browse_dir():
+    path = request.args.get("path", "/").strip() or "/"
+    items = rescue.list_directory(path)
+    return jsonify({"success": True, "items": items, "path": path})
+
+
+# ═══════════════════ 系统快照 / 备份 ═══════════════════
+
+@bp.route("/api/rescue/backup/create", methods=["POST"])
+@safe_api
+@require_auth
+@validate_json([])
+def backup_create(data):
+    """创建系统快照。可选参数: name, include_home。"""
+    result = rescue.create_system_snapshot(
+        name=data.get("name", ""),
+        include_home=data.get("include_home", False),
+    )
+    return jsonify(result)
+
+
+@bp.route("/api/rescue/backup/list")
+@safe_api
+@require_auth
+def backup_list():
+    """列出所有快照。"""
+    return jsonify({"snapshots": rescue.list_snapshots()})
+
+
+@bp.route("/api/rescue/backup/delete", methods=["POST"])
+@safe_api
+@require_auth
+@validate_json(["name"])
+def backup_delete(data):
+    """删除指定快照。"""
+    ok, msg = rescue.delete_snapshot(data["name"])
+    return jsonify({"success": ok, "message": msg})
+
+
+@bp.route("/api/rescue/backup/restore", methods=["POST"])
+@safe_api
+@require_auth
+@validate_json(["snapshot", "filename"])
+def backup_restore(data):
+    """从快照恢复单个配置文件。"""
+    ok, msg = rescue.restore_config_file(data["snapshot"], data["filename"])
+    return jsonify({"success": ok, "message": msg})
+
+
+@bp.route("/api/rescue/backup/compare")
+@safe_api
+@require_auth
+def backup_compare():
+    """比较快照与当前系统。"""
+    name = request.args.get("name", "").strip()
+    if not name:
+        return jsonify({"error": "快照名称不能为空"}), 400
+    return jsonify(rescue.compare_snapshot(name))

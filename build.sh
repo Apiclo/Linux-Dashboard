@@ -1,6 +1,6 @@
 #!/bin/bash
 # ═══════════════════════════════════════════════════════════════
-# PenguinFu — 打包脚本
+# TuxTackleBox — 打包脚本
 #   ./build.sh             → venv 自包含目录（最可移植，推荐）
 #   ./build.sh --binary    → PyInstaller onedir 目录
 #   ./build.sh --appimage  → 单个 .AppImage 文件（跨发行版通用）
@@ -12,12 +12,12 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 cd "$SCRIPT_DIR"
 
 DIST_DIR="$SCRIPT_DIR/dist"
-BINARY_NAME="penguinfu"
+BINARY_NAME="tuxtacklebox"
 MODE="${1:-venv}"
 
 echo ""
 echo "  ╔═══════════════════════════════════════════════╗"
-echo "  ║       PenguinFu — Package Builder             ║"
+echo "  ║       TuxTackleBox — Package Builder             ║"
 echo "  ╚═══════════════════════════════════════════════╝"
 echo ""
 
@@ -53,20 +53,33 @@ FRONTEND_DIST="$SCRIPT_DIR/build/frontend/dist"
 cd "$SCRIPT_DIR/frontend" && npx vite build --outDir "$FRONTEND_DIST" --emptyOutDir && cd "$SCRIPT_DIR"
 echo "  ✓ 前端就绪"
 
-# ── 模式: venv 自包含目录 ──
-if [ "$MODE" = "--appimage" ]; then
-    # AppImage 先从 venv 目录构建 AppDir
-    echo "[2/3] 创建虚拟环境..."
-    APPDIR="$SCRIPT_DIR/build/AppDir"
-    VENV_DIR="$APPDIR/venv"
-    python3 -m venv "$VENV_DIR"
+# ── Python 虚拟环境（--copies 拷贝实体，配合 libpython 打包）───
+_setup_venv() {
+    local VENV_DIR="$1"
+    python3 -m venv --copies "$VENV_DIR"
     source "$VENV_DIR/bin/activate"
     pip install --upgrade pip -q 2>/dev/null
     pip install -r "$SCRIPT_DIR/backend/requirements.txt" -q
     deactivate
-    echo "  ✓ venv 就绪"
 
-    echo "[3/3] 组装 AppDir → AppImage..."
+    # 复制 libpython 到 venv/lib/（跨发行版兼容）
+    local PYLIB=$(ldd "$VENV_DIR/bin/python" 2>/dev/null | grep libpython | awk '{print $3}')
+    if [ -n "$PYLIB" ] && [ -f "$PYLIB" ]; then
+        mkdir -p "$VENV_DIR/lib"
+        cp -L "$PYLIB" "$VENV_DIR/lib/"
+    fi
+    echo "  ✓ venv: $("$VENV_DIR/bin/python" --version 2>&1)"
+}
+
+# ── 模式: AppImage ──
+if [ "$MODE" = "--appimage" ]; then
+    APPDIR="$SCRIPT_DIR/build/AppDir"
+    VENV_DIR="$APPDIR/venv"
+
+    echo "[2/4] 创建 Python 环境..."
+    _setup_venv "$VENV_DIR"
+
+    echo "[3/4] 组装 AppDir → AppImage..."
     cp -r "$SCRIPT_DIR/backend" "$APPDIR/"
     mkdir -p "$APPDIR/frontend" && cp -r "$FRONTEND_DIST" "$APPDIR/frontend/dist"
     cp "$SCRIPT_DIR/config.json" "$APPDIR/"
@@ -78,23 +91,24 @@ if [ "$MODE" = "--appimage" ]; then
 #!/bin/bash
 HERE="$(dirname "$(readlink -f "$0")")"
 export PATH="$HERE/venv/bin:$PATH"
+export LD_LIBRARY_PATH="$HERE/venv/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
 exec "$HERE/venv/bin/python" "$HERE/backend/main.py" "$@"
 APPRUN
     chmod +x "$APPDIR/AppRun"
 
     # .desktop
-    cat > "$APPDIR/penguinfu.desktop" << 'DESKTOP'
+    cat > "$APPDIR/tuxtacklebox.desktop" << 'DESKTOP'
 [Desktop Entry]
-Name=PenguinFu
+Name=TuxTackleBox
 Comment=System Management Toolbox
 Exec=AppRun
-Icon=penguinfu
+Icon=tuxtacklebox
 Type=Application
 Categories=System;
 DESKTOP
 
     # 图标 (SVG 企鹅 + 扳手)
-    cat > "$APPDIR/penguinfu.svg" << 'ICON'
+    cat > "$APPDIR/tuxtacklebox.svg" << 'ICON'
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
   <circle cx="64" cy="64" r="62" fill="#1a1a2e"/>
   <ellipse cx="52" cy="52" rx="18" ry="20" fill="#e6edf3"/>
@@ -106,10 +120,10 @@ DESKTOP
   <ellipse cx="64" cy="62" rx="8" ry="5" fill="#f85149"/>
   <rect x="20" y="90" width="24" height="6" rx="2" fill="#d29922"/>
   <rect x="84" y="90" width="24" height="6" rx="2" fill="#d29922"/>
-  <text x="64" y="98" text-anchor="middle" font-size="10" fill="#58a6ff" font-family="Arial">PENGUINFU</text>
+  <text x="64" y="98" text-anchor="middle" font-size="10" fill="#58a6ff" font-family="Arial">TUXTACKLEBOX</text>
 </svg>
 ICON
-    cp "$APPDIR/penguinfu.svg" "$APPDIR/.DirIcon"
+    cp "$APPDIR/tuxtacklebox.svg" "$APPDIR/.DirIcon"
 
     # 下载 appimagetool
     AIM="$SCRIPT_DIR/build/appimagetool"
@@ -142,7 +156,7 @@ elif [ "$MODE" != "--binary" ]; then
     echo "[2/3] 创建虚拟环境..."
     PKG_DIR="$DIST_DIR/$BINARY_NAME"
     VENV_DIR="$PKG_DIR/venv"
-    python3 -m venv "$VENV_DIR"
+    python3 -m venv --copies "$VENV_DIR"
     source "$VENV_DIR/bin/activate"
     pip install --upgrade pip -q 2>/dev/null
     pip install -r "$SCRIPT_DIR/backend/requirements.txt" -q
@@ -177,19 +191,18 @@ LAUNCHER
     echo "  部署: 复制到目标机器即可，需 Python 3.8+"
 
 else
-    # ── 模式: PyInstaller onedir ──
-    echo "[2/3] 准备构建 venv..."
+    # ── 模式: PyInstaller onedir（使用便携 Python 兼容旧 glibc）───
+    echo "[2/3] 准备 Python 环境..."
     BUILD_VENV="$SCRIPT_DIR/build/venv"
-    python3 -m venv "$BUILD_VENV"
+    _setup_venv "$BUILD_VENV"
     source "$BUILD_VENV/bin/activate"
-    pip install --upgrade pip -q 2>/dev/null
-    pip install -r "$SCRIPT_DIR/backend/requirements.txt" -q
     pip install pyinstaller -q
+    deactivate
     echo "  ✓ 构建 venv 就绪"
 
-    echo "[3/3] PyInstaller 打包 (onedir — 兼容旧 glibc)..."
+    echo "[3/3] PyInstaller 打包 (onedir)..."
     cd "$SCRIPT_DIR/backend"
-    pyinstaller \
+    "$BUILD_VENV/bin/pyinstaller" \
         --distpath "$DIST_DIR/app" \
         --workpath "$SCRIPT_DIR/build/pyinstaller" \
         --name "$BINARY_NAME" \
@@ -210,7 +223,7 @@ else
     cat > "$DIST_DIR/$BINARY_NAME" << 'LAUNCHER'
 #!/bin/bash
 DIR="$(cd "$(dirname "$0")" && pwd)"
-exec "$DIR/app/penguinfu/penguinfu" "$@"
+exec "$DIR/app/tuxtacklebox/tuxtacklebox" "$@"
 LAUNCHER
     chmod +x "$DIST_DIR/$BINARY_NAME"
     cp "$SCRIPT_DIR/config.json" "$DIST_DIR/" 2>/dev/null || true

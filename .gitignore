@@ -1,5 +1,15 @@
 /log
-/backend/routes/__pycache__
+/backend/*/__pycache__
+/backend/__pycache__
 *.pyc
 /frontend/dist
 /frontend/node_modules
+/build
+/dist
+/.Trash-1000
+TODO.md
+*.log
+BUGS.md
+*.pid
+.vscode/settings.json
+/offline-pkgs

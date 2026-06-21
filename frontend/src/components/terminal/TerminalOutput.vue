@@ -49,13 +49,22 @@ const termEl = ref<HTMLElement>()
 
 watch(() => props.outputHtml, () => {
   nextTick(() => {
-    if (termEl.value) termEl.value.scrollTop = termEl.value.scrollHeight
+    const el = termEl.value
+    if (!el) return
+    // Only auto-scroll if the user is already near the bottom (within 40px)
+    const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 40
+    if (nearBottom) el.scrollTop = el.scrollHeight
   })
 })
 
 async function doCopy() {
-  await navigator.clipboard.writeText(termEl.value?.textContent || '')
-  toast.success('已复制')
+  try {
+    await navigator.clipboard.writeText(termEl.value?.textContent || '')
+    toast.success('已复制')
+  } catch {
+    // Fallback for older browsers / non-HTTPS
+    toast.error('复制失败（需要 HTTPS 或 localhost）')
+  }
 }
 </script>
 

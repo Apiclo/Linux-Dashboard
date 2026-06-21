@@ -94,6 +94,16 @@ def install_intel():
     return jsonify({"task_id": start_task(gpu.install_intel_driver(), "gpu_intel")})
 
 
+@bp.route("/api/gpu/install/rocm", methods=["POST"])
+@safe_api
+@require_auth
+def install_rocm():
+    usecase = request.get_json(silent=True) or {}
+    return jsonify({"task_id": start_task(
+        gpu.install_rocm_driver(usecase.get("usecase", "rocm")), "gpu_rocm"
+    )})
+
+
 @bp.route("/api/gpu/install/custom", methods=["POST"])
 @safe_api
 @require_auth
@@ -123,6 +133,22 @@ def uninstall():
 def cuda_setup_repo():
     """仅设置 CUDA 仓库源，不安装包。"""
     return jsonify({"task_id": start_task(gpu.setup_cuda_repo(), "cuda_setup")})
+
+
+@bp.route("/api/gpu/nvidia-smi/realtime")
+@safe_api
+@require_auth
+def nvidia_smi_realtime():
+    """获取 nvidia-smi 实时数据。"""
+    return jsonify({"data": gpu.get_nvidia_smi_realtime()})
+
+
+@bp.route("/api/gpu/nvidia-smi/monitor", methods=["POST"])
+@safe_api
+@require_auth
+def nvidia_monitor():
+    """启动 nvidia-smi 实时监控 SSE 流。"""
+    return jsonify({"task_id": start_task(gpu.start_nvidia_monitor(), "nvidia_monitor")})
 
 
 @bp.route("/api/gpu/cuda/install", methods=["POST"])

@@ -10,6 +10,14 @@ export interface TaskState {
   maxLines: number
 }
 
+export interface BatchParsedResult {
+  total: number
+  success: number
+  failed: number
+  failedPackages: string[]
+  summary: string
+}
+
 export function useSseTask(maxLines = 5000) {
   const state = ref<TaskState>({
     taskId: null,
@@ -80,9 +88,69 @@ export function useSseTask(maxLines = 5000) {
       .join('\n')
   })
 
+  /** Parse batch operation output into structured results */
+  const parsedResults = computed<BatchParsedResult | null>(() => {
+    const out = state.value.output
+    if (!out || !state.value.done) return null
+
+    const lines = out.split('\n')
+    let success = 0
+    let failed = 0
+    const failedPackages: string[] = []
+
+    // Match patterns like:
+    //   pkgname: 安装成功 / 卸载成功 / installed / removed
+    //   pkgname: 安装失败 / 卸载失败 / failed
+    //   [SUCCESS] pkgname ...
+    //   [FAILED] pkgname ...
+    for (const line of lines) {
+      const trimmed = line.trim()
+      if (!trimmed) continue
+
+      // Chinese patterns
+      const successMatch = trimmed.match(/^(.+?)[：:]\s*(安装成功|卸载成功|成功|✓)/)
+      const failMatch = trimmed.match(/^(.+?)[：:]\s*(安装失败|卸载失败|失败|✗|error)/i)
+      // English patterns
+      const engSuccess = trimmed.match(/^\[?(SUCCESS|OK)\]?\s+(.+)/i)
+      const engFail = trimmed.match(/^\[?(FAIL|FAILED|ERROR)\]?\s+(.+)/i)
+      // Generic patterns from batch commands
+      const resultLine = trimmed.match(/^(.+?)\s+(成功|失败|OK|FAILED|installed|removed|error)$/i)
+
+      if (successMatch) {
+        success++
+      } else if (failMatch) {
+        failed++
+        failedPackages.push(failMatch[1].trim())
+      } else if (engSuccess) {
+        success++
+      } else if (engFail) {
+        failed++
+        failedPackages.push(engFail[2].trim())
+      } else if (resultLine) {
+        if (/成功|OK|installed|removed/i.test(resultLine[2])) {
+          success++
+        } else {
+          failed++
+          failedPackages.push(resultLine[1].trim())
+        }
+      }
+    }
+
+    const total = success + failed
+    if (total === 0) return null
+
+    return {
+      total,
+      success,
+      failed,
+      failedPackages,
+      summary: `${success}/${total} 成功` + (failed > 0 ? `，${failed} 失败` : ''),
+    }
+  })
+
   function escHtml(s: string) {
     return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
   }
 
-  return { state, start, stop, clear, outputHtml }
+  return { state, start, stop, clear, outputHtml, parsedResults }
 }

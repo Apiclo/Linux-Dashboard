@@ -1,4 +1,4 @@
-"""System routes."""
+"""System routes — core settings, sysctl, optimisation, MAC."""
 from flask import Blueprint, jsonify, request
 from utils.helpers import safe_api, validate_json, require_auth
 from core import system
@@ -124,6 +124,13 @@ def swap_create(data):
     return jsonify(system.create_swap(data["size"]))
 
 
+@bp.route("/api/system/swap/disable", methods=["POST"])
+@safe_api
+@require_auth
+def swap_disable():
+    return jsonify(system.disable_swap())
+
+
 @bp.route("/api/system/update", methods=["POST"])
 @safe_api
 @require_auth
@@ -144,102 +151,7 @@ def system_update():
     return jsonify({"task_id": task_id, "success": True})
 
 
-@bp.route("/api/system/ntp")
-@safe_api
-@require_auth
-def ntp_status():
-    return jsonify(system.get_ntp_status())
-
-
-@bp.route("/api/system/ntp", methods=["POST"])
-@safe_api
-@require_auth
-@validate_json(["enable"])
-def ntp_toggle(data):
-    return jsonify(system.toggle_ntp(data["enable"]))
-
-
-@bp.route("/api/system/ulimits")
-@safe_api
-@require_auth
-def ulimits():
-    return jsonify(system.get_ulimits())
-
-
-@bp.route("/api/system/ulimits", methods=["POST"])
-@safe_api
-@require_auth
-@validate_json(["content"])
-def save_ulimits(data):
-    return jsonify(system.save_ulimits(data["content"]))
-
-
-@bp.route("/api/system/modules")
-@safe_api
-@require_auth
-def modules():
-    return jsonify({"modules": system.get_kernel_modules()})
-
-
-@bp.route("/api/system/modules/manage", methods=["POST"])
-@safe_api
-@require_auth
-@validate_json(["name", "action"])
-def manage_module(data):
-    return jsonify(system.manage_kernel_module(data["name"], data["action"]))
-
-
-@bp.route("/api/system/swap/disable", methods=["POST"])
-@safe_api
-@require_auth
-def swap_disable():
-    return jsonify(system.disable_swap())
-
-
-@bp.route("/api/system/users")
-@safe_api
-@require_auth
-def users():
-    return jsonify({"users": system.get_users()})
-
-
-@bp.route("/api/system/users/add", methods=["POST"])
-@safe_api
-@require_auth
-@validate_json(["username", "password"])
-def user_add(data):
-    return jsonify(system.add_user(data["username"], data["password"], data.get("groups", ""), data.get("shell", "/bin/bash")))
-
-
-@bp.route("/api/system/users/delete", methods=["POST"])
-@safe_api
-@require_auth
-@validate_json(["username"])
-def user_delete(data):
-    return jsonify(system.delete_user(data["username"]))
-
-
-@bp.route("/api/system/users/password", methods=["POST"])
-@safe_api
-@require_auth
-@validate_json(["username", "password"])
-def user_password(data):
-    return jsonify(system.change_password(data["username"], data["password"]))
-
-
-@bp.route("/api/system/logs")
-@safe_api
-@require_auth
-def journal_logs():
-    try:
-        lines = int(request.args.get("lines", "100"))
-        lines = max(10, min(lines, 1000))
-    except (ValueError, TypeError):
-        lines = 100
-    unit = request.args.get("unit", "")
-    priority = request.args.get("priority", "")
-    return jsonify({"logs": system.get_journal_logs(lines, unit, priority)})
-
+# ── 服务优化 ──
 
 @bp.route("/api/system/service-optimize")
 @safe_api
@@ -252,8 +164,12 @@ def service_optimize_status():
 @safe_api
 @require_auth
 def service_optimize_run():
-    return jsonify({"results": system.optimize_services()})
+    data = request.get_json(silent=True) or {}
+    svc_names = data.get("svc_names", None)
+    return jsonify({"results": system.optimize_services(svc_names)})
 
+
+# ── 快速内核参数 ──
 
 @bp.route("/api/system/quick-params")
 @safe_api
@@ -307,71 +223,119 @@ def optimization_apply(data):
     ))
 
 
-# ── Boot & Kernel Tuning ──
+# ── Sysctl 持久化 ──
 
-@bp.route("/api/system/grub-config")
+@bp.route("/api/sysctl/persist", methods=["POST"])
 @safe_api
 @require_auth
-def grub_config():
-    """获取当前 GRUB 配置和可用内核列表。"""
-    return jsonify(system.get_grub_config())
-
-
-@bp.route("/api/system/grub-default", methods=["POST"])
-@safe_api
-@require_auth
-@validate_json(["value"])
-def grub_default(data):
-    """设置默认启动内核。"""
-    out, code = system.set_grub_default(data["value"])
+@validate_json(["key", "value"])
+def sysctl_persist(data):
+    out, code = system.persist_sysctl(data["key"], data["value"])
     return jsonify({"success": code == 0, "message": out})
 
 
-@bp.route("/api/system/grub-cmdline", methods=["POST"])
+# ── SELinux / AppArmor ──
+
+@bp.route("/api/system/mac")
 @safe_api
 @require_auth
-@validate_json(["params"])
-def grub_cmdline(data):
-    """设置 GRUB 内核引导参数。"""
-    out, code = system.set_grub_cmdline(data["params"])
-    return jsonify({"success": code == 0, "message": out})
+def mac_status():
+    return jsonify(system.get_mac_status())
 
 
-@bp.route("/api/system/grub-cmdline-presets")
+@bp.route("/api/system/selinux", methods=["POST"])
 @safe_api
 @require_auth
-def grub_cmdline_presets():
-    """获取引导参数预设列表。"""
-    return jsonify({"presets": system.BOOT_PARAM_PRESETS})
-
-
-@bp.route("/api/system/cpu-governor")
-@safe_api
-@require_auth
-def cpu_governor():
-    return jsonify(system.get_cpu_governor())
-
-
-@bp.route("/api/system/cpu-governor", methods=["POST"])
-@safe_api
-@require_auth
-@validate_json(["governor"])
-def cpu_governor_set(data):
-    ok, msg = system.set_cpu_governor(data["governor"])
+@validate_json(["mode"])
+def selinux_set(data):
+    ok, msg = system.set_selinux_mode(data["mode"])
     return jsonify({"success": ok, "message": msg})
 
 
-@bp.route("/api/system/io-scheduler")
+# ── 诊断报告 ──
+
+@bp.route("/api/system/diagnostic")
 @safe_api
 @require_auth
-def io_scheduler():
-    return jsonify(system.get_io_scheduler())
+def diagnostic_report():
+    """生成 Markdown 格式的系统诊断报告。"""
+    return jsonify({"success": True, "report": system.generate_diagnostic_report()})
 
 
-@bp.route("/api/system/io-scheduler", methods=["POST"])
+@bp.route("/api/system/features")
 @safe_api
 @require_auth
-@validate_json(["device", "scheduler"])
-def io_scheduler_set(data):
-    ok, msg = system.set_io_scheduler(data["device"], data["scheduler"])
-    return jsonify({"success": ok, "message": msg})
+def system_features():
+    return jsonify(system.check_available_features())
+
+
+@bp.route("/api/system/thermal")
+@safe_api
+@require_auth
+def thermal():
+    return jsonify(system.get_thermal())
+
+
+@bp.route("/api/system/notifications")
+@safe_api
+@require_auth
+def notifications():
+    return jsonify(system.get_notifications())
+
+
+@bp.route("/api/system/cpu-freq")
+@safe_api
+@require_auth
+def cpu_freq():
+    return jsonify(system.get_cpu_freq_details())
+
+
+# ── 内核参数配置文件 ──
+
+@bp.route("/api/system/kernel-profiles")
+@safe_api
+@require_auth
+def kernel_profiles_list():
+    return jsonify({"profiles": system.list_kernel_profiles()})
+
+
+@bp.route("/api/system/kernel-profiles/save", methods=["POST"])
+@safe_api
+@require_auth
+@validate_json(["name"])
+def kernel_profiles_save(data):
+    return jsonify(system.save_kernel_profile(data["name"], data.get("params")))
+
+
+@bp.route("/api/system/kernel-profiles/load")
+@safe_api
+@require_auth
+def kernel_profiles_load():
+    name = request.args.get("name", "").strip()
+    if not name: return jsonify({"error": "name required"}), 400
+    return jsonify(system.load_kernel_profile(name))
+
+
+@bp.route("/api/system/kernel-profiles/apply", methods=["POST"])
+@safe_api
+@require_auth
+@validate_json(["name"])
+def kernel_profiles_apply(data):
+    return jsonify(system.apply_kernel_profile(data["name"]))
+
+
+@bp.route("/api/system/kernel-profiles/delete", methods=["POST"])
+@safe_api
+@require_auth
+@validate_json(["name"])
+def kernel_profiles_delete(data):
+    return jsonify(system.delete_kernel_profile(data["name"]))
+
+
+@bp.route("/api/system/kernel-profiles/compare")
+@safe_api
+@require_auth
+def kernel_profiles_compare():
+    name = request.args.get("name", "").strip()
+    if not name: return jsonify({"error": "name required"}), 400
+    return jsonify(system.compare_kernel_profile(name))

@@ -53,7 +53,7 @@ def create_raid(level: str, devices: List[str], name: str = "") -> Dict:
     if level not in valid_levels:
         return {"success": False, "message": f"Invalid RAID level. Supported: {', '.join(valid_levels)}"}
     for dev in devices:
-        if not re.match(r'^/dev/[a-zA-Z0-9]+$', dev):
+        if not re.match(r'^/dev/[a-zA-Z0-9_/.-]+$', dev):
             return {"success": False, "message": f"Invalid device path: {dev}"}
     md_name = name if name else "md0"
     if not re.match(r'^md\d+$', md_name):

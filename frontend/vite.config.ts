@@ -1,6 +1,5 @@
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
-import tailwindcss from '@tailwindcss/vite'
 import { resolve } from 'path'
 import { readFileSync } from 'fs'
 
@@ -11,7 +10,7 @@ try {
 } catch {}
 
 export default defineConfig({
-  plugins: [vue(), tailwindcss()],
+  plugins: [vue()],
   resolve: {
     alias: {
       '@': resolve(__dirname, 'src'),
@@ -34,5 +33,16 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     emptyOutDir: true,
+    target: 'es2020',
+    cssMinify: 'esbuild',
+    rollupOptions: {
+      output: {
+        manualChunks(id: string) {
+          if (id.includes('node_modules/element-plus')) return 'element-plus'
+          if (id.includes('node_modules/@xterm')) return 'xterm'
+          if (id.includes('node_modules/vue') || id.includes('node_modules/vue-router') || id.includes('node_modules/axios')) return 'vendor'
+        },
+      },
+    },
   },
 })

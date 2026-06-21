@@ -1,290 +1,275 @@
 @import "tailwindcss";
 
+/* ═══════════════════════════════════════════════════════════════
+   Cockpit-style Design System — Relaxed Edition
+   Dark sidebar + light content area, clean & breathable
+   ═══════════════════════════════════════════════════════════════ */
+
 :root {
-  --bg-0: #010409;
-  --bg-1: #0d1117;
-  --bg-2: #161b22;
-  --bg-3: #21262d;
-  --bg-hover: #292e36;
-  --border: #30363d;
-  --text-0: #e6edf3;
-  --text-1: #8b949e;
-  --text-2: #484f58;
-  --accent: #58a6ff;
-  --accent-hover: #79c0ff;
-  --green: #3fb950;
-  --red: #f85149;
-  --yellow: #d29922;
-  --purple: #bc8cff;
-  --pink: #db61a2;
-  --sidebar-w: 240px;
-  --radius-sm: 6px;
-  --radius-md: 10px;
-  --radius-lg: 14px;
-  --radius-xl: 18px;
-}
-
-[data-theme="light"] {
-  --bg-0: #f0f2f5;
+  /* Content area — light, clean */
+  --bg-0: #f5f5f5;
   --bg-1: #ffffff;
-  --bg-2: #f6f8fa;
-  --bg-3: #eaeef2;
-  --bg-hover: #dde1e6;
-  --border: #d0d7de;
-  --text-0: #1f2328;
-  --text-1: #656d76;
-  --text-2: #8b949e;
-  --accent: #0969da;
-  --accent-hover: #0550ae;
-  --green: #1a7f37;
-  --red: #cf222e;
-  --yellow: #9a6700;
-  --purple: #8250df;
-  --pink: #bf3989;
+  --bg-2: #fafafa;
+  --bg-3: #ededed;
+  --bg-hover: #e5e5e5;
+  --border: #d4d4d4;
+  --text-0: #151515;
+  --text-1: #555555;
+  --text-2: #888888;
+  /* Accent — Cockpit blue */
+  --accent: #0066cc;
+  --accent-hover: #0055aa;
+  /* Semantic */
+  --green: #3c763d;
+  --red: #c00;
+  --yellow: #8a6d3b;
+  --purple: #7c3aed;
+  --pink: #be185d;
+  /* Sidebar — dark */
+  --sidebar-bg: #1e1e1e;
+  --sidebar-text: #b0b0b0;
+  --sidebar-active: #ffffff;
+  --sidebar-hover: #2a2a2a;
+  /* Layout */
+  --sidebar-w: 240px;
+  --radius-sm: 4px;
+  --radius-md: 6px;
 }
 
+[data-theme="dark"] {
+  --bg-0: #151515;
+  --bg-1: #1e1e1e;
+  --bg-2: #252525;
+  --bg-3: #2d2d2d;
+  --bg-hover: #333333;
+  --border: #3a3a3a;
+  --text-0: #e0e0e0;
+  --text-1: #999999;
+  --text-2: #666666;
+  --accent: #4a9eff;
+  --accent-hover: #6ab4ff;
+  --green: #4caf50;
+  --red: #f44336;
+  --yellow: #ff9800;
+  --sidebar-bg: #111111;
+  --sidebar-text: #888888;
+  --sidebar-active: #ffffff;
+  --sidebar-hover: #1a1a1a;
+}
+
+/* ═══════════════════════ Base ═══════════════════════ */
 *, *::before, *::after { box-sizing: border-box; }
 body {
-  margin: 0;
-  padding: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif;
+  margin: 0; padding: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 14px;
+  line-height: 1.55;
   -webkit-font-smoothing: antialiased;
-  background-color: var(--bg-0);
-  color: var(--text-0);
-  min-height: 100vh;
-  line-height: 1.5;
-}
-
-#app {
-  min-height: 100vh;
-  background-color: var(--bg-0);
-  color: var(--text-0);
-}
-
-.text-muted { color: var(--text-1); }
-.text-secondary { color: var(--text-2); }
-
-::-webkit-scrollbar { width: 8px; height: 8px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--bg-3); border-radius: 4px; }
-::-webkit-scrollbar-thumb:hover { background: var(--text-2); }
-
-.terminal {
   background: var(--bg-0);
   color: var(--text-0);
+}
+#app { min-height: 100vh; background: var(--bg-0); color: var(--text-0); }
+
+::-webkit-scrollbar { width: 7px; height: 7px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+/* ═══════════════════════ Typography ═══════════════════════ */
+.mono, .font-mono { font-family: 'JetBrains Mono', 'Fira Code', 'Menlo', monospace; }
+
+/* ═══════════════════════ Card — Cockpit style ═══════════════════════ */
+.el-card {
   border-radius: var(--radius-md);
-  padding: 16px;
-  font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Menlo', monospace;
-  font-size: 13px;
-  line-height: 1.7;
-  min-height: 200px;
-  max-height: 400px;
-  overflow-y: auto;
-  white-space: pre-wrap;
-  word-break: break-all;
   border: 1px solid var(--border);
+  box-shadow: none;
+  background: var(--bg-1);
+}
+.el-card__header {
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--border);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-0);
+  background: var(--bg-2);
+}
+.el-card__body { padding: 20px; }
+
+.card-title {
+  font-size: 14px; font-weight: 600; color: var(--text-0);
+  display: flex; align-items: center; gap: 8px;
+}
+.card-title .el-icon { color: var(--accent); font-size: 17px; }
+
+.card-header-row {
+  display: flex; align-items: center; justify-content: space-between; width: 100%;
+}
+
+/* ═══════════════════════ Table — relaxed ═══════════════════════ */
+.el-table {
+  font-size: 13px;
+  --el-table-border-color: var(--border);
+}
+.el-table th.el-table__cell {
+  font-size: 12px; font-weight: 600; color: var(--text-1);
+  background: var(--bg-2); text-transform: none;
+  padding: 8px 12px; border-bottom: 2px solid var(--border);
+}
+.el-table td.el-table__cell { padding: 8px 12px; }
+.el-table--striped .el-table__body tr.el-table__row--striped td { background: var(--bg-2); }
+.el-table__body tr.el-table__row:hover > td { background: var(--bg-hover) !important; cursor: pointer; }
+
+/* ═══════════════════════ Button — relaxed ═══════════════════════ */
+.el-button { font-size: 13px; padding: 7px 18px; border-radius: var(--radius-sm); }
+.el-button--small { font-size: 12px; padding: 5px 12px; }
+.el-button--primary { background: var(--accent); border-color: var(--accent); }
+.el-button--primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
+
+/* ═══════════════════════ Form inputs ═══════════════════════ */
+.el-input__wrapper { border-radius: var(--radius-sm); }
+.el-input__inner { font-size: 13px; }
+.el-select { font-size: 13px; }
+.el-tag { border-radius: 4px; font-size: 12px; }
+
+/* ═══════════════════════ Dialog ═══════════════════════ */
+.el-dialog { border-radius: 6px; }
+.el-dialog__header { padding: 18px 24px 14px; font-size: 15px; font-weight: 600; }
+.el-dialog__body { padding: 20px 24px; }
+.el-dialog__footer { padding: 14px 24px 18px; }
+
+/* ═══════════════════════ Collapse — card-style ═══════════════════════ */
+.el-collapse {
+  border-radius: var(--radius-md); overflow: hidden;
+  border: 1px solid var(--border); background: var(--bg-1);
+}
+.el-collapse-item__header {
+  padding: 0 20px; height: 44px;
+  font-size: 14px; font-weight: 600; color: var(--text-0);
+  background: var(--bg-2); border-bottom: 1px solid var(--border);
+}
+.el-collapse-item__header:hover { background: var(--bg-hover); }
+.el-collapse-item__header .el-icon { margin-right: 8px; color: var(--accent); font-size: 16px; }
+.el-collapse-item__wrap { background: var(--bg-1); border-bottom: none; }
+.el-collapse-item:last-child > .el-collapse-item__header { border-bottom: none; }
+
+/* ═══════════════════════ Page title — Cockpit style ═══════════════════════ */
+.page-title {
+  font-size: 18px; font-weight: 600; color: var(--text-0);
+  margin-bottom: 20px; display: flex; align-items: center; gap: 10px;
+}
+.page-title .el-icon { color: var(--accent); font-size: 20px; }
+
+/* ═══════════════════════ Terminal output ═══════════════════════ */
+.terminal {
+  background: var(--bg-0); color: var(--text-0);
+  border-radius: var(--radius-sm); padding: 14px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px; line-height: 1.55;
+  min-height: 100px; max-height: 350px;
+  overflow-y: auto; white-space: pre-wrap;
+  word-break: break-all; border: 1px solid var(--border);
 }
 .terminal .err-line { color: var(--red); }
 .terminal .warn-line { color: var(--yellow); }
 .terminal .ok-line { color: var(--green); }
 
+/* ═══════════════════════ Utility classes ═══════════════════════ */
+.section-gap { margin-bottom: 20px; }
+.text-muted { color: var(--text-1); }
+.text-secondary { color: var(--text-2); }
+.text-accent { color: var(--accent); }
+.pre-wrap { white-space: pre-wrap; }
+
+/* Status dot */
+.status-dot {
+  display: inline-block; width: 8px; height: 8px;
+  border-radius: 50%; flex-shrink: 0;
+}
+.status-dot.up { background: var(--green); }
+.status-dot.down { background: var(--red); }
+
+/* Info row — Cockpit-style key-value */
+.info-row { display: flex; align-items: baseline; gap: 10px; font-size: 13px; padding: 3px 0; }
+.info-label { color: var(--text-2); min-width: 90px; flex-shrink: 0; }
+.info-value { color: var(--text-0); font-family: 'JetBrains Mono', monospace; font-size: 13px; word-break: break-all; }
+
+/* Interface card */
+.iface-card {
+  background: var(--bg-1); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); padding: 12px 16px;
+}
+.iface-card:hover { border-color: var(--accent); }
+.iface-card.down { opacity: 0.65; }
+
+/* Code block */
+.code-block {
+  background: var(--bg-0); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); padding: 12px 16px;
+  font-family: 'JetBrains Mono', monospace; font-size: 12px;
+  line-height: 1.55; white-space: pre-wrap; overflow-x: auto;
+}
+
+/* Upload zone */
 .upload-zone {
-  border: 2px dashed var(--border);
-  border-radius: var(--radius-lg);
-  padding: 40px;
-  text-align: center;
-  cursor: pointer;
-  transition: all 0.2s ease;
+  border: 2px dashed var(--border); border-radius: 6px;
+  padding: 32px; text-align: center; cursor: pointer;
+  transition: all 0.2s;
 }
-.upload-zone:hover, .upload-zone.dragover {
-  border-color: var(--accent);
-  background: rgba(88, 166, 255, 0.06);
+.upload-zone:hover, .upload-zone.dragover { border-color: var(--accent); background: rgba(0,102,204,0.04); }
+
+/* Panel states */
+.panel-state { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 36px 20px; gap: 8px; min-height: 120px; }
+.panel-loading { color: var(--text-2); }
+.panel-error { color: var(--red); }
+
+/* Back to top */
+.back-to-top {
+  position: fixed; bottom: 28px; right: 28px; z-index: 900;
+  width: 36px; height: 36px; border-radius: 50%;
+  background: var(--accent); color: #fff; border: none; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 15px; box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+  transition: opacity 0.15s, transform 0.15s;
 }
+.back-to-top:hover { transform: translateY(-2px); opacity: 0.9; }
 
-.mono { font-family: 'JetBrains Mono', monospace; }
+/* Resource card — Dashboard */
+.resource-card { height: 100%; }
+.resource-card .el-card__body { display: flex; flex-direction: column; justify-content: center; min-height: 100px; }
+.resource-value { font-size: 24px; font-weight: 700; color: var(--text-0); line-height: 1.2; }
+.resource-used { color: var(--accent); }
+.resource-sep { color: var(--text-2); font-weight: 400; font-size: 17px; }
+.resource-total { font-weight: 500; font-size: 17px; }
+.resource-model { font-size: 13px; color: var(--text-1); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-/* ── Element Plus 暗色主题全面覆盖 ── */
+/* ═══════════════════════ Element Plus override — dark mode ═══════════════════════ */
 html.dark {
   --el-bg-color: var(--bg-1);
   --el-bg-color-overlay: var(--bg-2);
   --el-bg-color-page: var(--bg-0);
   --el-text-color-primary: var(--text-0);
   --el-text-color-regular: var(--text-1);
-  --el-text-color-secondary: var(--text-2);
-  --el-text-color-placeholder: var(--text-2);
   --el-border-color: var(--border);
-  --el-border-color-light: var(--border);
-  --el-border-color-lighter: var(--border);
-  --el-border-color-dark: var(--border);
   --el-color-primary: var(--accent);
-  --el-color-primary-light-3: #79bbff;
-  --el-color-primary-light-5: #a0cfff;
-  --el-color-primary-light-7: #c6e2ff;
-  --el-color-primary-light-9: #ecf5ff;
-  --el-color-primary-dark-2: #337ecc;
   --el-color-success: var(--green);
   --el-color-warning: var(--yellow);
   --el-color-danger: var(--red);
-  --el-color-info: var(--text-1);
   --el-fill-color: var(--bg-2);
   --el-fill-color-light: var(--bg-3);
-  --el-fill-color-lighter: var(--bg-2);
   --el-fill-color-blank: var(--bg-1);
-  --el-fill-color-dark: var(--bg-hover);
-  --el-mask-color: rgba(0, 0, 0, 0.6);
-  --el-border-radius-base: var(--radius-sm);
-  --el-border-radius-small: 4px;
-  --el-border-radius-round: 20px;
+  --el-mask-color: rgba(0,0,0,0.6);
 }
-
-/* ── 组件暗色适配 ── */
-html.dark .el-card {
-  --el-card-bg-color: var(--bg-2);
-  border-color: var(--border);
-}
-html.dark .el-dialog {
-  --el-dialog-bg-color: var(--bg-2);
-}
+html.dark .el-card { --el-card-bg-color: var(--bg-1); border-color: var(--border); }
+html.dark .el-dialog { --el-dialog-bg-color: var(--bg-2); }
 html.dark .el-table {
   --el-table-bg-color: var(--bg-1);
   --el-table-tr-bg-color: var(--bg-1);
   --el-table-header-bg-color: var(--bg-2);
   --el-table-row-hover-bg-color: var(--bg-3);
-  --el-table-border-color: var(--border);
 }
-html.dark .el-table--striped .el-table__body tr.el-table__row--striped td.el-table__cell {
-  background-color: var(--bg-2);
-}
-html.dark .el-table tr:hover > td.el-table__cell {
-  background-color: var(--bg-3);
-}
-html.dark .el-descriptions {
-  --el-descriptions-item-bordered-label-background: var(--bg-3);
-}
-/* ── el-collapse 全面重设：视觉与 el-card 统一 ── */
-/* 暗色变量 */
-html.dark .el-collapse {
-  --el-collapse-border-color: var(--border);
-  --el-collapse-header-bg-color: var(--bg-2);
-  --el-collapse-content-bg-color: var(--bg-1);
-  border-color: var(--border);
-}
-/* 亮色变量补齐 */
-.el-collapse {
-  --el-collapse-header-text-color: var(--text-0);
-  --el-collapse-content-text-color: var(--text-0);
-}
-html.dark .el-input__wrapper {
-  background-color: var(--bg-2);
-  box-shadow: 0 0 0 1px var(--border) inset;
-}
-html.dark .el-select .el-input__wrapper {
-  background-color: var(--bg-2);
-}
-html.dark .el-textarea__inner {
-  background-color: var(--bg-2);
-  color: var(--text-0);
-  border-color: var(--border);
-}
-html.dark .el-tag {
-  --el-tag-bg-color: var(--bg-3);
-  --el-tag-border-color: var(--border);
-  --el-tag-text-color: var(--text-0);
-}
-html.dark .el-alert {
-  --el-alert-bg-color: var(--bg-2);
-}
-html.dark .el-progress-bar__outer {
-  background-color: var(--bg-3);
-}
-html.dark .el-loading-mask {
-  background-color: rgba(0, 0, 0, 0.5);
-}
-html.dark .el-dropdown-menu {
-  background-color: var(--bg-2);
-  border-color: var(--border);
-}
-html.dark .el-message-box {
-  background: var(--bg-2);
-  border-color: var(--border);
-}
-html.dark .el-switch__core {
-  background-color: var(--bg-3);
-}
+html.dark .el-input__wrapper { background: var(--bg-2); box-shadow: 0 0 0 1px var(--border) inset; }
+html.dark .el-textarea__inner { background: var(--bg-2); color: var(--text-0); border-color: var(--border); }
+html.dark .el-tag { --el-tag-bg-color: var(--bg-3); }
+html.dark .el-message-box { background: var(--bg-2); border-color: var(--border); }
 
-/* ── 页面标题 ── */
-.page-title {
-  font-size: 22px;
-  font-weight: 600;
-  color: var(--text-0);
-  margin-bottom: 28px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  letter-spacing: -0.3px;
-}
-.page-title .el-icon { color: var(--accent); }
-
-/* ── 统一间距工具类 ── */
-.section-gap { margin-bottom: 24px; }
-.card-body { padding: 20px; }
-
-/* ── 统一圆角样式 ── */
-.el-card {
-  border-radius: var(--radius-md);
-}
-.el-dialog {
-  border-radius: var(--radius-lg);
-}
-.el-button {
-  border-radius: var(--radius-sm);
-}
-.el-input__wrapper {
-  border-radius: var(--radius-sm);
-}
-.el-tag {
-  border-radius: var(--radius-sm);
-}
-/* ═══════════════════════════════════════════════════════════
-   el-collapse — 与 el-card 视觉完全统一的卡片式手风琴
-   ═══════════════════════════════════════════════════════════ */
-.el-collapse {
-  border-radius: var(--radius-md);
-  overflow: hidden;
-  border: 1px solid var(--border);
-  background: var(--bg-1);
-}
-/* header：模拟 el-card__header 的内边距与视觉重量 */
-.el-collapse-item__header {
-  padding: 0 20px;                    /* ← 核心修复：左右 20px 呼吸空间 */
-  height: 48px;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--text-0);
-  background: var(--bg-2);
-  border-bottom: 1px solid var(--border);  /* header 之间分割线 */
-  transition: background 0.15s ease;
-}
-.el-collapse-item__header:hover {
-  background: var(--bg-hover);
-}
-/* 标题里的图标（如 <el-icon><EditPen /></el-icon>）与文字间距 */
-.el-collapse-item__header .el-icon {
-  margin-right: 8px;
-  color: var(--accent);
-}
-/* 右侧折叠箭头 */
-.el-collapse-item__arrow {
-  margin: 0 4px 0 12px;
-  font-size: 12px;
-  color: var(--text-2);
-}
-/* 展开后面板：去掉多余分割线，内容区背景与 card-body 一致 */
-.el-collapse-item__wrap {
-  background: var(--bg-1);
-  border-bottom: none;
-}
-/* 最后一个 item 不显示底部边框 */
-.el-collapse-item:last-child > .el-collapse-item__header {
-  border-bottom: none;
-}
+/* Smooth theme transition */
+html { transition: background-color 0.3s ease, color 0.3s ease; }

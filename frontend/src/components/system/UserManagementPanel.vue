@@ -20,11 +20,28 @@
       <el-button size="small" type="primary" @click="addUser" :loading="userLoading">添加用户</el-button>
       <el-button size="small" @click="loadUsers">刷新</el-button>
     </div>
+
+    <!-- 改密弹窗 -->
+    <el-dialog v-model="pwDialogVisible" title="修改密码" width="380px">
+      <el-form label-width="80px" size="small">
+        <el-form-item label="用户"><strong>{{ pwUser }}</strong></el-form-item>
+        <el-form-item label="新密码">
+          <el-input v-model="pwNew" type="password" show-password placeholder="输入新密码" />
+        </el-form-item>
+        <el-form-item label="确认密码">
+          <el-input v-model="pwConfirm" type="password" show-password placeholder="再次输入" @keyup.enter="doChangePassword" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="pwDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="doChangePassword" :disabled="!pwNew">确定</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { systemApi } from '@/api/system'
 import { useToast } from '@/composables/useToast'
 import { useConfirm } from '@/composables/useConfirm'
@@ -41,7 +58,7 @@ async function loadUsers() {
   try {
     const r = await systemApi.getUsers()
     users.value = r.users || []
-  } catch { /* ignore */ }
+  } catch { toast.error("用户列表加载失败") }
 }
 
 async function addUser() {
@@ -66,17 +83,29 @@ async function deleteUser(username: string) {
     const r = await systemApi.deleteUser(username)
     toast.show(r.message || (r.success ? '已删除' : '失败'), r.success ? 'success' : 'error')
     if (r.success) await loadUsers()
-  } catch { /* ignore */ }
+  } catch { toast.error("删除用户失败") }
 }
 
-async function openPasswordDialog(username: string) {
-  const password = prompt(`设置 ${username} 的新密码:`)
-  if (!password) return
+const pwDialogVisible = ref(false)
+const pwUser = ref('')
+const pwNew = ref('')
+const pwConfirm = ref('')
+
+function openPasswordDialog(username: string) {
+  pwUser.value = username; pwNew.value = ''; pwConfirm.value = ''
+  pwDialogVisible.value = true
+}
+
+async function doChangePassword() {
+  if (!pwNew.value) return toast.warning('请输入密码')
+  if (pwNew.value !== pwConfirm.value) return toast.warning('两次密码不一致')
   try {
-    const r = await systemApi.changePassword(username, password)
+    const r = await systemApi.changePassword(pwUser.value, pwNew.value)
     toast.show(r.message || (r.success ? '密码已修改' : '失败'), r.success ? 'success' : 'error')
-  } catch { /* ignore */ }
+    if (r.success) pwDialogVisible.value = false
+  } catch { toast.error("密码修改失败") }
 }
 
 defineExpose({ loadUsers })
+onMounted(loadUsers)
 </script>

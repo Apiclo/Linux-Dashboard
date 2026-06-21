@@ -213,7 +213,7 @@ async function loadProfiles() {
     const keys = Object.keys(profiles.value)
     if (keys.length && !profiles.value[activeTab.value]) activeTab.value = keys[0]
     if (activeTab.value !== 'custom') await loadPreview()
-  } catch { /* ignore */ }
+  } catch { toast.error("优化方案加载失败") }
 }
 
 async function loadPreview() {
@@ -273,7 +273,7 @@ async function loadCustomData() {
     const vals: Record<string, any> = {}
     for (const p of customParams.value) vals[p.key] = p.type === 'range' ? parseInt(p.current) || 0 : p.current
     customValues.value = vals
-  } catch { /* ignore */ }
+  } catch { toast.error("优化方案加载失败") }
   customLoading.value = false
 }
 
@@ -295,7 +295,7 @@ async function applyCustomSvcs() {
   if (!(await showConfirm('服务优化', `确定禁用 ${customCheckedSvcs.value.length} 个已选服务吗？`))) return
   customApplying.value = true
   try {
-    const r = await systemApi.runServiceOptimize()
+    const r = await systemApi.runServiceOptimize([...customCheckedSvcs.value])
     const ok = r.results.filter(x => x.success).length
     toast.show(`已禁用 ${ok}/${r.results.length} 个服务`, ok > 0 ? 'success' : 'error')
     await loadCustomData()

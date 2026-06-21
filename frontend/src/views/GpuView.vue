@@ -2,11 +2,13 @@
   <div>
     <div class="page-title"><el-icon><VideoCamera /></el-icon>GPU 驱动管理</div>
 
+    <FeatureStatus :features="features" />
+
     <!-- Detection -->
-    <el-card shadow="never" class="mb-5">
+    <el-card shadow="never" class="mb-6">
       <template #header>
         <div class="flex flex-wrap justify-between items-center">
-          <span class="flex items-center gap-2 font-semibold"><el-icon><Search /></el-icon>环境检测</span>
+          <span class="flex items-center gap-3 font-semibold"><el-icon><Search /></el-icon>环境检测</span>
           <div class="flex gap-3">
             <el-button size="small" plain @click="copyEnv"><el-icon class="mr-1"><CopyDocument /></el-icon>复制</el-button>
             <el-button size="small" type="warning" plain @click="checkCompat"><el-icon class="mr-1"><Shield /></el-icon>检查</el-button>
@@ -14,20 +16,23 @@
           </div>
         </div>
       </template>
-      <div v-if="gd.nvidia_gpus?.length > 1" class="mb-2">
-        <div v-for="g in gd.nvidia_gpus" :key="g.index" class="p-2 mb-1 text-sm" style="background: var(--bg-0); border-radius: 6px">
-          <strong>GPU {{ g.index }}</strong> | {{ g.gpu_name }} | {{ g.driver_version }} | {{ g.temperature }}°C | {{ g.vram_used }}/{{ g.vram_total }} MiB
+      <div v-if="loading" class="panel-loading"><el-icon class="is-loading"><Loading /></el-icon> 正在检测 GPU 环境...</div>
+      <div v-if="detectError" class="panel-error">{{ detectError }}</div>
+      <template v-if="!loading && !detectError">
+        <div v-if="gd.nvidia_gpus?.length > 1" class="mb-3">
+          <div v-for="g in gd.nvidia_gpus" :key="g.index" class="p-2 mb-1 text-sm" style="background: var(--bg-0); border-radius: 6px">
+            <strong>GPU {{ g.index }}</strong> | {{ g.gpu_name }} | {{ g.driver_version }} | {{ g.temperature }}°C | {{ g.vram_used }}/{{ g.vram_total }} MiB
+          </div>
         </div>
-      </div>
-      <div v-if="gd.gpus?.length" class="mb-2">
-        <el-alert v-for="g in gd.gpus" :key="g.name" :type="g.type==='nvidia'?'success':'info'" :closable="false" class="mb-1">
-          <template #title>
-            <strong>{{ g.vendor }}</strong> | {{ g.name }} <span v-if="g.pci_id" style="color: var(--text-1)">| {{ g.pci_id }}</span>
-          </template>
-        </el-alert>
-      </div>
-      <div v-else class="mb-2"><el-alert type="warning" :closable="false">未检测到 GPU</el-alert></div>
-      <el-descriptions :column="2" border size="small" class="mb-2">
+        <div v-if="gd.gpus?.length" class="mb-3">
+          <el-alert v-for="g in gd.gpus" :key="g.name" :type="g.type==='nvidia'?'success':'info'" :closable="false" class="mb-2">
+            <template #title>
+              <strong>{{ g.vendor }}</strong> | {{ g.name }} <span v-if="g.pci_id" style="color: var(--text-1)">| {{ g.pci_id }}</span>
+            </template>
+          </el-alert>
+        </div>
+        <el-empty v-else-if="!gd.gpus?.length" description="未检测到 GPU" :image-size="60" />
+      <el-descriptions :column="2" border size="small" class="mb-3">
         <el-descriptions-item label="内核">{{ gd.kernel }}</el-descriptions-item>
         <el-descriptions-item label="头文件">{{ gd.kernel_headers || '未找到' }}</el-descriptions-item>
         <el-descriptions-item label="显示管理器">{{ gd.display_manager || '无' }}</el-descriptions-item>
@@ -39,7 +44,7 @@
         </el-descriptions-item>
         <el-descriptions-item label="发行版">{{ gd.distro?.pretty_name }}</el-descriptions-item>
       </el-descriptions>
-      <el-alert v-if="gd.nouveau?.loaded" type="error" :closable="false" class="mt-2">
+      <el-alert v-if="gd.nouveau?.loaded" type="error" :closable="false" class="mt-3">
         <template #title>
           <div class="flex justify-between items-center">
             <span><strong>nouveau 已加载！</strong></span>
@@ -47,7 +52,7 @@
           </div>
         </template>
       </el-alert>
-      <el-alert v-else-if="!gd.nouveau?.blacklisted" type="warning" :closable="false" class="mt-2">
+      <el-alert v-else-if="!gd.nouveau?.blacklisted" type="warning" :closable="false" class="mt-3">
         <template #title>
           <div class="flex justify-between items-center">
             <span>nouveau 未显式禁用</span>
@@ -55,10 +60,10 @@
           </div>
         </template>
       </el-alert>
-      <el-alert v-else type="success" :closable="false" class="mt-2">
+      <el-alert v-else type="success" :closable="false" class="mt-3">
         <template #title>nouveau 已禁用</template>
       </el-alert>
-      <div v-if="compat.checks?.length" class="mt-3">
+      <div v-if="compat.checks?.length" class="mt-4">
         <div class="text-sm mb-2 font-semibold">兼容性检查</div>
         <el-table :data="compatRows" size="small" stripe border>
           <el-table-column prop="name" label="组件" />
@@ -72,18 +77,53 @@
           <el-table-column prop="detail" label="详情" />
         </el-table>
       </div>
+      </template>
+    </el-card>
+
+    <!-- nvidia-smi 实时监控 -->
+    <el-card v-if="gd.nvidia_gpus?.length" shadow="never" class="mb-6">
+      <template #header>
+        <div class="flex items-center justify-between">
+          <span class="flex items-center gap-3 font-semibold"><el-icon><Monitor /></el-icon>GPU 实时监控</span>
+          <div class="flex gap-2">
+            <el-button size="small" plain @click="refreshNvidiaSmi">刷新</el-button>
+            <el-button size="small" @click="startNvidiaMonitor" :disabled="task.running">SSE 监控</el-button>
+          </div>
+        </div>
+      </template>
+      <div class="font-mono text-sm whitespace-pre-wrap" style="line-height:1.8; max-height:300px;overflow-y:auto" v-html="nvidiaSmiHtml"></div>
+    </el-card>
+
+    <!-- AMD + Intel Quick Install -->
+    <el-card v-if="hasAmdGpu || hasIntelGpu" shadow="never" class="mb-6">
+      <template #header>
+        <span class="flex items-center gap-3 font-semibold"><el-icon><Cpu /></el-icon>AMD / Intel 开源驱动</span>
+      </template>
+      <div class="flex gap-3 flex-wrap">
+        <el-card v-if="hasAmdGpu" shadow="never" class="flex-1" style="min-width: 240px; background: var(--bg-0)">
+          <template #header><span class="font-semibold text-sm">AMD GPU</span></template>
+          <div v-for="g in amdGpus" :key="g.name" class="text-sm mb-2" style="color: var(--text-1)">{{ g.name }}</div>
+          <el-button type="primary" size="small" @click="installAmd" :disabled="task.running">安装 AMD 开源驱动</el-button>
+          <el-button size="small" class="ml-2" @click="installRocm" :disabled="task.running" v-if="features.rocm_smi">安装 ROCm</el-button>
+        </el-card>
+        <el-card v-if="hasIntelGpu" shadow="never" class="flex-1" style="min-width: 240px; background: var(--bg-0)">
+          <template #header><span class="font-semibold text-sm">Intel GPU</span></template>
+          <div v-for="g in intelGpus" :key="g.name" class="text-sm mb-2" style="color: var(--text-1)">{{ g.name }}</div>
+          <el-button type="primary" size="small" @click="installIntel" :disabled="task.running">安装 Intel 开源驱动</el-button>
+        </el-card>
+      </div>
     </el-card>
 
     <!-- NVIDIA Installer -->
-    <el-card shadow="never" class="mb-5">
+    <el-card shadow="never" class="mb-6">
       <template #header>
-        <span class="flex items-center gap-2 font-semibold"><el-icon><Setting /></el-icon>NVIDIA 驱动安装器</span>
+        <span class="flex items-center gap-3 font-semibold"><el-icon><Setting /></el-icon>NVIDIA 驱动安装器</span>
       </template>
-      <el-tabs v-model="tab">
+      <el-tabs v-model="tab" :lazy="false">
         <!-- Repo -->
         <el-tab-pane name="repo">
           <template #label><el-icon class="mr-1"><Box /></el-icon>仓库</template>
-          <div class="flex gap-3 mb-3 items-center">
+          <div class="flex gap-4 mb-4 items-center">
             <el-input v-model="verSearch" placeholder="搜索版本..." size="small" style="max-width: 180px" />
             <el-select v-model="repoPkg" placeholder="选择版本" filterable clearable class="flex-1" size="small">
               <el-option v-for="v in filteredVersions" :key="v.value" :label="v.label" :value="v.value" />
@@ -91,9 +131,9 @@
             <el-button size="small" plain @click="loadVersions"><el-icon><Refresh /></el-icon></el-button>
           </div>
           <!-- 分组选项 -->
-          <div class="grid grid-cols-12 gap-3 mb-3">
+          <div class="grid grid-cols-12 gap-4 mb-3">
             <div v-for="group in repoOptGroups" :key="group.label" class="col-span-12 md:col-span-6">
-              <div class="p-3 rounded-lg" style="background: var(--bg-0); border: 1px solid var(--border)">
+              <div class="p-4 rounded-lg" style="background: var(--bg-0); border: 1px solid var(--border)">
                 <div class="text-xs font-semibold mb-2" style="color: var(--text-2)">{{ group.label }}</div>
                 <div class="flex flex-wrap gap-3">
                   <el-tooltip v-for="o in group.items" :key="o.key" :content="o.desc" placement="top">
@@ -106,7 +146,7 @@
               </div>
             </div>
           </div>
-          <div class="flex gap-3 items-center">
+          <div class="flex gap-4 items-center">
             <el-button @click="installRepo" :disabled="!repoPkg || task.running"><el-icon class="mr-1"><Download /></el-icon>安装</el-button>
             <el-button type="danger" @click="doUninstall"><el-icon class="mr-1"><Delete /></el-icon>卸载</el-button>
           </div>
@@ -120,9 +160,9 @@
           </el-alert>
           <div class="upload-zone mb-3" @click="triggerRunInput" @dragover.prevent="runDrag=true" @dragleave="runDrag=false" @drop.prevent="onRunDrop" :class="{dragover:runDrag}">
             <el-icon style="font-size: 2.5rem; color: var(--text-2)"><Upload /></el-icon>
-            <div class="mt-2" style="color: var(--text-1)">点击或拖拽上传 .run 文件</div>
-            <div v-if="runUpload.name" class="mt-2 text-green-500"><el-icon class="mr-1"><CircleCheck /></el-icon>{{ runUpload.name }} ({{ (runUpload.size/1024/1024).toFixed(1) }} MB)</div>
-            <div v-if="runUploading" class="mt-2"><el-icon class="is-loading" :size="20"><Loading /></el-icon></div>
+            <div class="mt-3" style="color: var(--text-1)">点击或拖拽上传 .run 文件</div>
+            <div v-if="runUpload.name" class="mt-3" style="color: var(--green)"><el-icon class="mr-1"><CircleCheck /></el-icon>{{ runUpload.name }} ({{ (runUpload.size/1024/1024).toFixed(1) }} MB)</div>
+            <div v-if="runUploading" class="mt-3"><el-icon class="is-loading" :size="20"><Loading /></el-icon></div>
             <input type="file" ref="runInput" accept=".run" style="display:none" @change="onRunSelect">
           </div>
           <el-input v-model="runPath" placeholder="或直接输入路径" class="w-full mb-3" size="small" />
@@ -147,8 +187,8 @@
                 <div class="col-span-12 md:col-span-6">
                   <div class="upload-zone" @click="triggerOfflineInput" @dragover.prevent="olDrag=true" @dragleave="olDrag=false" @drop.prevent="onOlDrop" :class="{dragover:olDrag}">
                     <el-icon style="font-size: 2.5rem; color: var(--text-2)"><Upload /></el-icon>
-                    <div class="mt-2" style="color: var(--text-1)">上传 .tar.gz 离线包</div>
-                    <div v-if="olUploading" class="mt-2"><el-icon class="is-loading" :size="20"><Loading /></el-icon></div>
+                    <div class="mt-3" style="color: var(--text-1)">上传 .tar.gz 离线包</div>
+                    <div v-if="olUploading" class="mt-3"><el-icon class="is-loading" :size="20"><Loading /></el-icon></div>
                     <input type="file" ref="offlineInput" accept=".tar.gz,.tgz" style="display:none" @change="onOlSelect">
                   </div>
                 </div>
@@ -172,7 +212,7 @@
                   <div class="flex items-center gap-2"><el-checkbox v-model="olOpt.use_script" /><span class="text-sm">使用 install.sh</span></div>
                   <div class="flex items-center gap-2"><el-checkbox v-model="olOpt.force" /><span class="text-sm">强制覆盖</span></div>
                 </div>
-                <el-button class="mt-3" @click="installOffline" :disabled="task.running"><el-icon class="mr-1"><Download /></el-icon>安装</el-button>
+                <el-button class="mt-4" @click="installOffline" :disabled="task.running"><el-icon class="mr-1"><Download /></el-icon>安装</el-button>
               </div>
             </el-tab-pane>
             <el-tab-pane name="generate">
@@ -196,8 +236,8 @@
                 <div class="col-span-12 md:col-span-5">
                   <div class="p-4 rounded-lg" style="background: var(--bg-2); border: 1px solid var(--border)">
                     <div class="font-semibold mb-3">选项</div>
-                    <div class="mb-2"><label class="block mb-1 text-sm">包名称</label><el-input v-model="genName" class="w-full" size="small" /></div>
-                    <div class="mb-2"><label class="block mb-1 text-sm">适用镜像</label><el-input v-model="genIso" placeholder="如 Kylin-Desktop-V10-SP1-2403.iso" class="w-full" size="small" /></div>
+                    <div class="mb-3"><label class="block mb-1 text-sm">包名称</label><el-input v-model="genName" class="w-full" size="small" /></div>
+                    <div class="mb-3"><label class="block mb-1 text-sm">适用镜像</label><el-input v-model="genIso" placeholder="如 Kylin-Desktop-V10-SP1-2403.iso" class="w-full" size="small" /></div>
                     <div class="flex items-center gap-2 mb-3"><el-checkbox v-model="genDeps" /><span class="text-sm">包含依赖</span></div>
                     <el-button class="w-full" @click="doGenerate" :disabled="!genSelected.length || task.running"><el-icon class="mr-1"><MagicStick /></el-icon>生成离线包</el-button>
                   </div>
@@ -248,31 +288,11 @@
         <!-- Custom -->
         <el-tab-pane name="custom">
           <template #label><el-icon class="mr-1"><ChatLineSquare /></el-icon>自定义</template>
-          <el-input v-model="customCmd" type="textarea" :rows="3" class="w-full mb-3 font-mono" style="font-size: 12px" placeholder="输入命令..." />
+          <el-input v-model="customCmd" type="textarea" :rows="3" class="w-full mb-3 font-mono mono-textarea" placeholder="输入命令..." />
           <el-button plain @click="runCustom" :disabled="!customCmd || task.running"><el-icon class="mr-1"><VideoPlay /></el-icon>执行</el-button>
         </el-tab-pane>
       </el-tabs>
     </el-card>
-
-    <!-- AMD / Intel -->
-    <div class="grid grid-cols-12 gap-4 mb-5">
-      <div class="col-span-12 md:col-span-6">
-        <el-card shadow="never">
-          <template #header>
-            <span class="flex items-center gap-2 font-semibold"><el-icon><Cpu /></el-icon>AMD</span>
-          </template>
-          <el-button size="small" @click="installAmd" :disabled="task.running">安装开源驱动</el-button>
-        </el-card>
-      </div>
-      <div class="col-span-12 md:col-span-6">
-        <el-card shadow="never">
-          <template #header>
-            <span class="flex items-center gap-2 font-semibold"><el-icon><Cpu /></el-icon>Intel</span>
-          </template>
-          <el-button size="small" @click="installIntel" :disabled="task.running">安装开源驱动</el-button>
-        </el-card>
-      </div>
-    </div>
 
     <!-- Terminal -->
     <TerminalOutput
@@ -288,6 +308,8 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import { systemApi } from '@/api/system'
+import FeatureStatus from '@/components/common/FeatureStatus.vue'
 import { gpuApi } from '@/api/gpu'
 import { useToast } from '@/composables/useToast'
 import { useConfirm } from '@/composables/useConfirm'
@@ -296,11 +318,22 @@ import type { GpuDetectData, NvidiaVersion, OfflinePackage, CompatResult, GenPac
 import TerminalOutput from '@/components/terminal/TerminalOutput.vue'
 
 const toast = useToast()
+const features = ref<Array<{name:string;available:boolean}>>([])
+async function fetchFeatures(){try{const f=await systemApi.getFeatures();features.value=Object.entries(f).filter(([k])=>['gcc','nvidia_smi','rocm_smi','sudo'].includes(k)).map(([k,v])=>({name:k,available:!!v}))}catch{} }
 const { confirm: showConfirm } = useConfirm()
 const { state: task, start, stop, clear, outputHtml } = useSseTask()
 
 const loading = ref(false)
+const detectError = ref('')
 const gd = ref<GpuDetectData>({} as GpuDetectData)
+const hasAmdGpu = computed(() => gd.value.gpus?.some((g: any) => g.vendor === 'AMD'))
+const hasIntelGpu = computed(() => gd.value.gpus?.some((g: any) => g.vendor === 'Intel'))
+const amdGpus = computed(() => (gd.value.gpus || []).filter((g: any) => g.vendor === 'AMD'))
+const intelGpus = computed(() => (gd.value.gpus || []).filter((g: any) => g.vendor === 'Intel'))
+async function installRocm() {
+  if (!(await showConfirm('安装 ROCm', 'ROCm 安装包较大（数GB），将配置官方仓库并安装。继续？'))) return
+  try { const r = await gpuApi.installRocm(); start(r.task_id) } catch { toast.error('ROCm 安装失败') }
+}
 const versions = ref<NvidiaVersion[]>([])
 const compat = ref<CompatResult>({ checks: [], warnings: [], errors: [] })
 const tab = ref('repo')
@@ -394,6 +427,11 @@ const cudaVersions = ref<string[]>([])
 const cudaSetupRunning = ref(false)
 const cudaRepoReady = ref(false)
 
+// nvidia-smi realtime
+const nvidiaSmiHtml = ref('')
+async function refreshNvidiaSmi() { try { nvidiaSmiHtml.value = (await gpuApi.getNvidiaSmiRealtime()).data.replace(/\n/g,'<br>') } catch { /* nvidia-smi may not be available */ } }
+async function startNvidiaMonitor() { try { const r = await gpuApi.startNvidiaMonitor(); start(r.task_id) } catch { toast.error('启动失败') } }
+
 // Custom
 const customCmd = ref('')
 
@@ -403,14 +441,15 @@ function onOfflineTabClick(tab: any) { if (tab.props.name === 'generate') loadPk
 
 async function detect() {
   loading.value = true
-  try { gd.value = await gpuApi.detect() } catch { toast.error('检测失败') }
+  detectError.value = ''
+  try { gd.value = await gpuApi.detect() } catch { detectError.value = 'GPU 环境检测失败，请重试' }
   loading.value = false
 }
 
-async function loadVersions() { try { versions.value = await gpuApi.getNvidiaVersions() } catch {} }
-async function loadCudaVersions() { try { cudaVersions.value = await gpuApi.getCudaVersions() } catch {} }
-async function loadOffline() { try { offlinePkgs.value = await gpuApi.getOfflineList() } catch {} }
-async function loadPkgList() { try { genPkgs.value = await gpuApi.getNvidiaPackages() } catch {} }
+async function loadVersions() { try { versions.value = await gpuApi.getNvidiaVersions() } catch { toast.error("加载 NVIDIA 版本列表失败") } }
+async function loadCudaVersions() { try { cudaVersions.value = await gpuApi.getCudaVersions() } catch { toast.error("加载 CUDA 版本列表失败") } }
+async function loadOffline() { try { offlinePkgs.value = await gpuApi.getOfflineList() } catch { toast.error("加载离线包列表失败") } }
+async function loadPkgList() { try { genPkgs.value = await gpuApi.getNvidiaPackages() } catch { toast.error("加载 NVIDIA 包列表失败") } }
 
 async function copyEnv() {
   const g = gd.value
@@ -506,7 +545,7 @@ async function runCustom() { if (!customCmd.value) return; const r = await gpuAp
 function cancelTask() { stop(); toast.info('已取消') }
 function clearOutput() { clear() }
 
-onMounted(() => { detect(); loadVersions(); loadCudaVersions(); loadOffline() })
+onMounted(() => { detect(); loadVersions(); loadCudaVersions(); loadOffline(); fetchFeatures() })
 </script>
 
 <style scoped>

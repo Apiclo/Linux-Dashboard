@@ -80,7 +80,7 @@ async function load() {
       vals[p.key] = p.type === 'range' ? parseInt(p.current) || 0 : p.current
     }
     values.value = vals
-  } catch { /* ignore */ }
+  } catch { toast.error('加载快速参数失败') }
 }
 
 async function applyRecommended() {
@@ -90,8 +90,10 @@ async function applyRecommended() {
     const p: Record<string, string> = {}
     for (const param of params.value) p[param.key] = param.recommended
     const r = await systemApi.applyQuickParams(p)
-    const ok = r.results.filter((x: unknown) => (x as Record<string, unknown>).success).length
-    toast.show(`已设置 ${ok}/${r.results.length} 个参数`, ok > 0 ? 'success' : 'error')
+    const results = Array.isArray(r.results) ? r.results : []
+    const ok = results.filter((x: unknown) => (x as Record<string, unknown>).success).length
+    const total = results.length || Object.keys(p).length
+    toast.show(`已设置 ${ok}/${total} 个参数`, ok > 0 ? 'success' : 'error')
     await load()
   } finally { loading.value = false }
 }
@@ -102,8 +104,10 @@ async function applyCustom() {
     const p: Record<string, string> = {}
     for (const [key, val] of Object.entries(values.value)) p[key] = String(val)
     const r = await systemApi.applyQuickParams(p)
-    const ok = r.results.filter((x: unknown) => (x as Record<string, unknown>).success).length
-    toast.show(`已设置 ${ok}/${r.results.length} 个参数`, ok > 0 ? 'success' : 'error')
+    const results = Array.isArray(r.results) ? r.results : []
+    const ok = results.filter((x: unknown) => (x as Record<string, unknown>).success).length
+    const total = results.length || Object.keys(p).length
+    toast.show(`已设置 ${ok}/${total} 个参数`, ok > 0 ? 'success' : 'error')
     await load()
   } finally { loading.value = false }
 }

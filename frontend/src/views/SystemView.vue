@@ -1,26 +1,41 @@
 <template>
   <div>
-    <div class="page-title"><el-icon><Monitor /></el-icon>系统参数</div>
+    <div class="page-title">
+      <el-icon><Monitor /></el-icon>系统参数
+      <el-switch v-model="autoRefresh" size="small" @change="toggleAutoRefresh" class="ml-3" active-text="30s" title="自动刷新 (30s)" />
+    </div>
 
-    <!-- System Info Descriptions -->
-    <el-descriptions :column="2" border class="mb-5 system-desc">
-      <el-descriptions-item label="OS">{{ info.os_name }}</el-descriptions-item>
-      <el-descriptions-item label="内核">{{ info.kernel }}</el-descriptions-item>
-      <el-descriptions-item label="CPU">{{ info.cpu }}</el-descriptions-item>
-      <el-descriptions-item label="内存">{{ info.ram_used_gb }}/{{ info.ram_total_gb }} GB ({{ info.ram_percent }}%)</el-descriptions-item>
-      <el-descriptions-item label="磁盘">{{ info.disk_used_gb }}/{{ info.disk_total_gb }} GB ({{ info.disk_percent }}%)</el-descriptions-item>
-      <el-descriptions-item label="运行时间">{{ info.uptime }}</el-descriptions-item>
-      <el-descriptions-item label="时区">{{ info.timezone }}</el-descriptions-item>
-      <el-descriptions-item label="桌面">{{ info.desktop }}</el-descriptions-item>
-    </el-descriptions>
+    <FeatureStatus :features="sysFeatures" />
+
+    <!-- System Info -->
+    <el-card shadow="never" class="mb-6">
+      <template #header>
+        <div class="flex justify-between items-center">
+          <span class="font-semibold">系统信息</span>
+          <el-button size="small" plain @click="copySystemInfo" :icon="CopyDocument" :disabled="!info.os_name">复制信息</el-button>
+        </div>
+      </template>
+      <div v-if="infoLoading" class="panel-loading"><el-icon class="is-loading"><Loading /></el-icon> 加载系统信息...</div>
+      <div v-if="infoError" class="panel-error">{{ infoError }}</div>
+      <el-descriptions v-if="!infoLoading && !infoError" :column="2" border class="system-desc">
+        <el-descriptions-item label="OS">{{ info.os_name }}</el-descriptions-item>
+        <el-descriptions-item label="内核">{{ info.kernel }}</el-descriptions-item>
+        <el-descriptions-item label="CPU">{{ info.cpu }}</el-descriptions-item>
+        <el-descriptions-item label="内存">{{ info.ram_used_gb }}/{{ info.ram_total_gb }} GB ({{ info.ram_percent }}%)</el-descriptions-item>
+        <el-descriptions-item label="磁盘">{{ info.disk_used_gb }}/{{ info.disk_total_gb }} GB ({{ info.disk_percent }}%)</el-descriptions-item>
+        <el-descriptions-item label="运行时间">{{ info.uptime }}</el-descriptions-item>
+        <el-descriptions-item label="时区">{{ info.timezone }}</el-descriptions-item>
+        <el-descriptions-item label="桌面">{{ info.desktop }}</el-descriptions-item>
+      </el-descriptions>
+    </el-card>
 
     <!-- Collapse Panels -->
-    <el-collapse v-model="activeCollapse" class="mb-5">
+    <el-collapse v-model="activeCollapse" class="mb-6">
 
       <!-- Basic Config -->
       <el-collapse-item name="basic">
         <template #title>
-          <span class="flex items-center gap-2 font-semibold"><el-icon><EditPen /></el-icon>基础配置</span>
+          <span class="flex items-center gap-3 font-semibold"><el-icon><EditPen /></el-icon>基础配置</span>
         </template>
         <el-form label-width="80px" size="small" class="p-5">
           <div class="flex flex-wrap gap-4">
@@ -59,7 +74,7 @@
       <!-- SSH Config -->
       <el-collapse-item name="ssh">
         <template #title>
-          <span class="flex items-center gap-2 font-semibold"><el-icon><Key /></el-icon>SSH 配置</span>
+          <span class="flex items-center gap-3 font-semibold"><el-icon><Key /></el-icon>SSH 配置</span>
         </template>
         <div class="p-5">
           <el-form label-width="160px" size="small">
@@ -90,47 +105,15 @@
       <!-- Swap Management -->
       <el-collapse-item name="swap">
         <template #title>
-          <span class="flex items-center gap-2 font-semibold"><el-icon><Coin /></el-icon>Swap 管理</span>
+          <span class="flex items-center gap-3 font-semibold"><el-icon><Coin /></el-icon>Swap 管理</span>
         </template>
-        <SwapPanel ref="swapPanelRef" />
-      </el-collapse-item>
-
-      <!-- Sysctl -->
-      <el-collapse-item name="sysctl">
-        <template #title>
-          <span class="flex items-center gap-2 font-semibold"><el-icon><Setting /></el-icon>内核参数 (Sysctl)</span>
-        </template>
-        <div class="p-5">
-          <el-input v-model="sysctlQuery" placeholder="搜索参数..." class="w-full mb-3" size="small" />
-          <el-table :data="sysctlRows" size="small" stripe border height="300px">
-            <el-table-column prop="key" label="参数" min-width="300">
-              <template #default="scope"><span class="mono text-sm">{{ scope.row.key }}</span></template>
-            </el-table-column>
-            <el-table-column prop="value" label="值" min-width="200">
-              <template #default="scope"><span class="mono text-sm">{{ scope.row.value }}</span></template>
-            </el-table-column>
-            <el-table-column label="操作" width="80">
-              <template #default="scope"><el-button size="small" plain @click="openEdit(scope.row.key, scope.row.value)">修改</el-button></template>
-            </el-table-column>
-          </el-table>
-        </div>
-      </el-collapse-item>
-
-      <!-- Hosts File -->
-      <el-collapse-item name="hosts">
-        <template #title>
-          <span class="flex items-center gap-2 font-semibold"><el-icon><Document /></el-icon>Hosts 文件</span>
-        </template>
-        <div class="p-5">
-          <el-input v-model="hosts" type="textarea" :rows="12" class="w-full mb-3 font-mono" style="font-size: 12px" />
-          <el-button size="small" @click="saveHosts">保存</el-button>
-        </div>
+        <SwapPanel />
       </el-collapse-item>
 
       <!-- NTP -->
       <el-collapse-item name="ntp">
         <template #title>
-          <span class="flex items-center gap-2 font-semibold"><el-icon><Clock /></el-icon>NTP 时间同步</span>
+          <span class="flex items-center gap-3 font-semibold"><el-icon><Clock /></el-icon>NTP 时间同步</span>
         </template>
         <div class="p-5">
           <div class="flex flex-wrap gap-6 mb-4">
@@ -149,130 +132,77 @@
       <!-- Ulimits -->
       <el-collapse-item name="ulimits">
         <template #title>
-          <span class="flex items-center gap-2 font-semibold"><el-icon><Setting /></el-icon>系统资源限制 (ulimits)</span>
+          <span class="flex items-center gap-3 font-semibold"><el-icon><Setting /></el-icon>系统资源限制 (ulimits)</span>
         </template>
         <div class="p-5">
           <div v-if="ulimitsRunning" class="mb-4">
             <div class="font-semibold mb-2">当前运行限制:</div>
-            <pre class="text-xs font-mono whitespace-pre-wrap" style="background: var(--bg-1); padding: 10px; border-radius: 6px; max-height: 200px; overflow: auto">{{ ulimitsRunning }}</pre>
+            <pre class="text-sm font-mono whitespace-pre-wrap" style="background: var(--bg-1); padding: 12px; border-radius: 6px; max-height: 200px; overflow: auto">{{ ulimitsRunning }}</pre>
           </div>
           <div class="font-semibold mb-2">/etc/security/limits.conf:</div>
-          <el-input v-model="ulimitsFile" type="textarea" :rows="14" class="w-full mb-3 font-mono" style="font-size: 12px" />
+          <el-input v-model="ulimitsFile" type="textarea" :rows="14" class="w-full mb-3 font-mono mono-textarea" />
           <el-button size="small" type="primary" @click="saveUlimitsConf" :loading="ulimitsSaving">保存</el-button>
           <el-button size="small" @click="loadUlimits">刷新</el-button>
         </div>
       </el-collapse-item>
 
-      <!-- Kernel Modules -->
-      <el-collapse-item name="modules">
+      <!-- Hosts File -->
+      <el-collapse-item name="hosts">
         <template #title>
-          <span class="flex items-center gap-2 font-semibold"><el-icon><Box /></el-icon>内核模块</span>
-        </template>
-        <KernelModulesPanel ref="modulesPanelRef" />
-      </el-collapse-item>
-
-      <!-- Boot & Kernel -->
-      <el-collapse-item name="boot-kernel">
-        <template #title>
-          <span class="flex items-center gap-2 font-semibold"><el-icon><Cpu /></el-icon>引导 & 内核调优</span>
-        </template>
-        <BootKernelPanel ref="bootKernelPanelRef" />
-      </el-collapse-item>
-
-      <!-- System Optimization -->
-      <el-collapse-item name="optimization">
-        <template #title>
-          <span class="flex items-center gap-2 font-semibold"><el-icon><Lightning /></el-icon>系统优化方案</span>
-        </template>
-        <SystemOptimizationPanel ref="optimizationPanelRef" />
-      </el-collapse-item>
-
-      <!-- User Management -->
-      <el-collapse-item name="users">
-        <template #title>
-          <span class="flex items-center gap-2 font-semibold"><el-icon><User /></el-icon>用户管理</span>
-        </template>
-        <UserManagementPanel ref="usersPanelRef" />
-      </el-collapse-item>
-
-      <!-- System Logs -->
-      <el-collapse-item name="logs">
-        <template #title>
-          <span class="flex items-center gap-2 font-semibold"><el-icon><Tickets /></el-icon>系统日志</span>
+          <span class="flex items-center gap-3 font-semibold"><el-icon><Document /></el-icon>Hosts 文件</span>
         </template>
         <div class="p-5">
-          <div class="flex gap-3 mb-3 items-center flex-wrap">
-            <el-input v-model="logUnit" placeholder="服务名(可选)" style="width: 160px" size="small" />
-            <el-select v-model="logPriority" placeholder="级别" style="width: 120px" size="small" clearable>
-              <el-option label="emerg" value="emerg" /><el-option label="alert" value="alert" />
-              <el-option label="crit" value="crit" /><el-option label="err" value="err" />
-              <el-option label="warning" value="warning" /><el-option label="notice" value="notice" />
-              <el-option label="info" value="info" /><el-option label="debug" value="debug" />
-            </el-select>
-            <el-select v-model="logLines" style="width: 100px" size="small">
-              <el-option :value="50" label="50行" /><el-option :value="100" label="100行" />
-              <el-option :value="200" label="200行" /><el-option :value="500" label="500行" />
-            </el-select>
-            <el-button size="small" @click="loadLogs">加载日志</el-button>
-          </div>
-          <div class="terminal">{{ logs }}</div>
+          <el-input v-model="hosts" type="textarea" :rows="12" class="w-full mb-3 font-mono mono-textarea" />
+          <el-button size="small" @click="saveHosts">保存</el-button>
         </div>
       </el-collapse-item>
+
     </el-collapse>
 
     <!-- System Update -->
-    <div class="mb-5">
+    <div class="mb-6">
       <el-button type="warning" @click="runUpdate" :loading="updateState.running">
         <el-icon class="mr-1"><Download /></el-icon>系统更新
       </el-button>
-      <div v-if="updateState.output" class="mt-3 p-3 rounded text-xs font-mono max-h-[300px] overflow-auto" style="background: var(--bg-1); border: 1px solid var(--border-1)">
+      <div v-if="updateState.output" class="mt-4 p-4 rounded text-sm font-mono max-h-[300px] overflow-auto" style="background: var(--bg-1); border: 1px solid var(--border)">
         <div v-html="updateOutputHtml"></div>
       </div>
     </div>
-
-    <!-- Sysctl Edit Dialog -->
-    <el-dialog v-model="editModal" title="修改 Sysctl 参数" width="400px">
-      <div class="mb-2"><strong>参数:</strong> <span class="mono">{{ editKey }}</span></div>
-      <div class="mb-3"><strong>当前值:</strong> {{ editCurrent }}</div>
-      <el-input v-model="editValue" placeholder="新值" class="w-full" @keyup.enter="saveEdit" />
-      <template #footer>
-        <el-button plain @click="editModal = false">取消</el-button>
-        <el-button type="primary" @click="saveEdit">确定</el-button>
-      </template>
-    </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { systemApi, type SshConfig } from '@/api/system'
 import { useToast } from '@/composables/useToast'
 import { useSseTask } from '@/composables/useSseTask'
 import { useConfirm } from '@/composables/useConfirm'
 import type { SystemInfo } from '@/types/api'
 import SwapPanel from '@/components/system/SwapPanel.vue'
-import KernelModulesPanel from '@/components/system/KernelModulesPanel.vue'
-import SystemOptimizationPanel from '@/components/system/SystemOptimizationPanel.vue'
-import BootKernelPanel from '@/components/system/BootKernelPanel.vue'
-import UserManagementPanel from '@/components/system/UserManagementPanel.vue'
+import FeatureStatus from '@/components/common/FeatureStatus.vue'
 
 const toast = useToast()
 const { confirm: showConfirm } = useConfirm()
 const { state: updateState, start: startUpdate, outputHtml: updateOutputHtml } = useSseTask()
 
 const info = ref<SystemInfo>({} as SystemInfo)
+const features = ref<Record<string, any>>({})
+const sysFeatures = ref<Array<{ name: string; available: boolean }>>([])
+async function fetchFeatures() {
+  try {
+    const f = await systemApi.getFeatures()
+    features.value = f
+    sysFeatures.value = Object.entries(f).map(([k, v]) => ({ name: k, available: !!v }))
+  } catch { /* non-critical */ }
+}
+const infoLoading = ref(true)
+const infoError = ref('')
 const hostname = ref('')
 const timezones = ref<string[]>([])
 const tz = ref('')
 const locales = ref<string[]>([])
 const loc = ref('')
-const sysctl = ref<Record<string, string>>({})
-const sysctlQuery = ref('')
 const hosts = ref('')
-const editModal = ref(false)
-const editKey = ref('')
-const editCurrent = ref('')
-const editValue = ref('')
 
 const activeCollapse = ref(['basic', 'ssh'])
 
@@ -288,29 +218,31 @@ const sshPubkeyAuth = computed({
   set: (v: boolean) => { ssh.value.pubkey_auth = v ? 'yes' : 'no' },
 })
 
-// Sub-component refs
-const swapPanelRef = ref<InstanceType<typeof SwapPanel>>()
-const modulesPanelRef = ref<InstanceType<typeof KernelModulesPanel>>()
-const optimizationPanelRef = ref<InstanceType<typeof SystemOptimizationPanel>>()
-const bootKernelPanelRef = ref<InstanceType<typeof BootKernelPanel>>()
-const usersPanelRef = ref<InstanceType<typeof UserManagementPanel>>()
-
-const sysctlRows = computed(() => {
-  const q = sysctlQuery.value.toLowerCase()
-  return Object.entries(sysctl.value)
-    .filter(([k]) => !q || k.toLowerCase().includes(q))
-    .slice(0, 300)
-    .map(([key, value]) => ({ key, value }))
-})
+function copySystemInfo() {
+  const i = info.value
+  const text = `OS: ${i.os_name}\n内核: ${i.kernel}\nCPU: ${i.cpu}\n` +
+    `内存: ${i.ram_used_gb}/${i.ram_total_gb} GB (${i.ram_percent}%)\n` +
+    `磁盘: ${i.disk_used_gb}/${i.disk_total_gb} GB (${i.disk_percent}%)\n` +
+    `运行时间: ${i.uptime}\n时区: ${i.timezone}\n桌面: ${i.desktop}`
+  navigator.clipboard.writeText(text).then(() => toast.success('已复制')).catch(() => toast.error('复制失败'))
+}
 
 async function load() {
-  const [i, tzList, locList, sc, ho, sshCfg] = await Promise.all([
-    systemApi.getInfo(), systemApi.getTimezones(), systemApi.getLocales(),
-    systemApi.getSysctl(), systemApi.getHosts(), systemApi.getSshConfig(),
-  ])
-  info.value = i; timezones.value = tzList; tz.value = i.timezone
-  locales.value = locList; loc.value = i.locale; sysctl.value = sc; hosts.value = ho.content
-  ssh.value = sshCfg
+  infoLoading.value = true
+  infoError.value = ''
+  try {
+    const [i, tzList, locList, ho, sshCfg] = await Promise.all([
+      systemApi.getInfo(), systemApi.getTimezones(), systemApi.getLocales(),
+      systemApi.getHosts(), systemApi.getSshConfig(),
+    ])
+    info.value = i; timezones.value = tzList; tz.value = i.timezone
+    locales.value = locList; loc.value = i.locale; hosts.value = ho.content
+    ssh.value = sshCfg
+  } catch (e: any) {
+    infoError.value = e?.message || '系统信息加载失败，请刷新重试'
+  } finally {
+    infoLoading.value = false
+  }
 }
 
 async function setHostname() {
@@ -338,6 +270,11 @@ async function saveSsh() {
   } finally { sshSaving.value = false }
 }
 
+async function saveHosts() {
+  const r = await systemApi.saveHosts(hosts.value)
+  toast.show(r.success ? '已保存' : '失败', r.success ? 'success' : 'error')
+}
+
 async function runUpdate() {
   try {
     const r = await systemApi.update()
@@ -346,28 +283,12 @@ async function runUpdate() {
   } catch { toast.error('Failed to start update task') }
 }
 
-function openEdit(k: string, v: string) {
-  editKey.value = k; editCurrent.value = v; editValue.value = v; editModal.value = true
-}
-
-async function saveEdit() {
-  const r = await systemApi.setSysctl(editKey.value, editValue.value)
-  toast.show(r.success ? '已设置' : '失败', r.success ? 'success' : 'error')
-  editModal.value = false
-  if (r.success) sysctl.value = await systemApi.getSysctl()
-}
-
-async function saveHosts() {
-  const r = await systemApi.saveHosts(hosts.value)
-  toast.show(r.success ? '已保存' : '失败', r.success ? 'success' : 'error')
-}
-
 // ── NTP ──
 const ntpStatus = ref<{ ntp_enabled: boolean; synced: boolean; service?: string }>({ ntp_enabled: false, synced: false })
 const ntpToggling = ref(false)
 
 async function loadNtp() {
-  try { ntpStatus.value = await systemApi.getNtpStatus() } catch { /* ignore */ }
+  try { ntpStatus.value = await systemApi.getNtpStatus() } catch { toast.error('加载失败') }
 }
 
 async function toggleNtp(enable: boolean) {
@@ -388,7 +309,7 @@ async function loadUlimits() {
   try {
     const r = await systemApi.getUlimits()
     ulimitsFile.value = r.file; ulimitsRunning.value = r.running
-  } catch { /* ignore */ }
+  } catch { toast.error('加载失败') }
 }
 
 async function saveUlimitsConf() {
@@ -400,37 +321,32 @@ async function saveUlimitsConf() {
   } finally { ulimitsSaving.value = false }
 }
 
-// ── Logs ──
-const logs = ref('')
-const logLines = ref(100)
-const logUnit = ref('')
-const logPriority = ref('')
-
-async function loadLogs() {
-  try {
-    logs.value = (await systemApi.getJournalLogs(logLines.value, logUnit.value, logPriority.value)).logs || 'No logs'
-  } catch { logs.value = 'Failed to load logs' }
+// Auto-refresh
+const autoRefresh = ref(false)
+let _refreshTimer: ReturnType<typeof setInterval> | null = null
+function toggleAutoRefresh(val: boolean) {
+  if (val) _refreshTimer = setInterval(() => { load(); loadNtp(); loadUlimits() }, 30000)
+  else { if (_refreshTimer) { clearInterval(_refreshTimer); _refreshTimer = null } }
 }
 
 onMounted(() => {
-  load(); loadNtp(); loadUlimits()
-  swapPanelRef.value?.load()
-  modulesPanelRef.value?.load()
-  bootKernelPanelRef.value?.loadAll()
-  optimizationPanelRef.value?.loadProfiles()
-  usersPanelRef.value?.loadUsers()
-  loadLogs()
+  load(); loadNtp(); loadUlimits(); fetchFeatures()
 })
+onBeforeUnmount(() => { if (_refreshTimer) clearInterval(_refreshTimer) })
 </script>
 
 <style scoped>
 .mono { font-family: 'JetBrains Mono', monospace; }
+.mono-textarea :deep(textarea) { font-family: 'JetBrains Mono', monospace !important; }
+.font-mono { font-family: 'JetBrains Mono', monospace; }
 .system-desc :deep(.el-descriptions__label) {
-  padding: 12px 16px;
+  padding: 14px 18px;
   font-weight: 600;
   background: var(--bg-1);
+  font-size: 14px;
 }
 .system-desc :deep(.el-descriptions__content) {
-  padding: 12px 16px;
+  padding: 14px 18px;
+  font-size: 14px;
 }
 </style>

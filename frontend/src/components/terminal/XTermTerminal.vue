@@ -20,7 +20,7 @@
 
 <script setup lang="ts">
 import { ref, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
-import { Terminal } from '@xterm/xterm'
+import { Terminal, type IDisposable } from '@xterm/xterm'
 import { FitAddon } from '@xterm/addon-fit'
 import { WebLinksAddon } from '@xterm/addon-web-links'
 import { useToast } from '@/composables/useToast'
@@ -49,17 +49,33 @@ const connecting = ref(false)
 let terminal: Terminal | null = null
 let fitAddon: FitAddon | null = null
 let ws: WebSocket | null = null
+let onDataDisposable: IDisposable | null = null
+let _cleanup: (() => void) | null = null
 
 const wsStatus = ref('就绪')
 
 function initTerminal() {
   if (!terminalEl.value) return
+  const isLight = document.documentElement.getAttribute('data-theme') === 'light'
   terminal = new Terminal({
     cursorBlink: true,
     cursorStyle: 'bar',
     fontSize: 14,
     fontFamily: "'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace",
-    theme: {
+    theme: isLight ? {
+      background: '#ffffff',
+      foreground: '#1f2328',
+      cursor: '#0969da',
+      selectionBackground: '#0969da22',
+      black: '#57606a',
+      red: '#cf222e',
+      green: '#1a7f37',
+      yellow: '#9a6700',
+      blue: '#0969da',
+      magenta: '#8250df',
+      cyan: '#1b7c83',
+      white: '#1f2328',
+    } : {
       background: '#0d1117',
       foreground: '#e6edf3',
       cursor: '#58a6ff',
@@ -88,13 +104,17 @@ function initTerminal() {
     // Could send SIGWINCH via WebSocket if implemented
   })
 
-  const handleResize = () => {
-    fitAddon?.fit()
-  }
+  const handleResize = () => { fitAddon?.fit() }
   window.addEventListener('resize', handleResize)
-
-  terminalEl.value._cleanup = () => {
+  // ResizeObserver 监听容器大小变化（如侧边栏折叠、面板展开等）
+  let ro: ResizeObserver | null = null
+  if (terminalEl.value) {
+    ro = new ResizeObserver(() => { fitAddon?.fit() })
+    ro.observe(terminalEl.value)
+  }
+  _cleanup = () => {
     window.removeEventListener('resize', handleResize)
+    ro?.disconnect()
   }
 }
 
@@ -146,23 +166,12 @@ function doConnect() {
 
   // 键盘输入 -> WebSocket
   if (terminal) {
-    terminal.onData((data) => {
+    onDataDisposable?.dispose()
+    onDataDisposable = terminal.onData((data) => {
       if (ws?.readyState === WebSocket.OPEN) {
         ws.send(data)
       }
     })
-  } else {
-    // terminal not yet created, will bind after init
-    const checkInterval = setInterval(() => {
-      if (terminal) {
-        terminal.onData((data) => {
-          if (ws?.readyState === WebSocket.OPEN) {
-            ws.send(data)
-          }
-        })
-        clearInterval(checkInterval)
-      }
-    }, 100)
   }
 }
 
@@ -190,10 +199,9 @@ onBeforeUnmount(() => {
     ws.close()
     ws = null
   }
+  onDataDisposable?.dispose()
   terminal?.dispose()
-  if (terminalEl.value?._cleanup) {
-    terminalEl.value._cleanup()
-  }
+  _cleanup?.()
 })
 </script>
 

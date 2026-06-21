@@ -21,7 +21,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { systemApi, type SwapInfo } from '@/api/system'
 import { useToast } from '@/composables/useToast'
 import { useConfirm } from '@/composables/useConfirm'
@@ -34,7 +34,7 @@ const swapSize = ref('')
 const creating = ref(false)
 
 async function load() {
-  try { info.value = await systemApi.getSwapInfo() } catch { /* ignore */ }
+  try { info.value = await systemApi.getSwapInfo() } catch { toast.error("Swap 数据加载失败") }
 }
 
 async function createSwap() {
@@ -59,4 +59,5 @@ async function disableSwap() {
 }
 
 defineExpose({ load })
+onMounted(load)
 </script>

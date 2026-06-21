@@ -1,8 +1,17 @@
 """Distro detection."""
+import os
+import time
 from utils.helpers import run_cmd
+
+_distro_cache = None
+_distro_cache_time = 0
 
 
 def detect_distro():
+    global _distro_cache, _distro_cache_time
+    now = time.time()
+    if _distro_cache is not None and (now - _distro_cache_time) < 60:
+        return _distro_cache.copy()
     info = {"id": "unknown", "like": "unknown", "pkg_manager": "unknown", "version": "", "pretty_name": "", "is_kylin": False, "kylin_edition": ""}
     try:
         with open("/etc/os-release") as f:
@@ -21,10 +30,12 @@ def detect_distro():
             info["kylin_edition"] = "server"; info["pkg_manager"] = "dnf"
         else:
             info["kylin_edition"] = "desktop"; info["pkg_manager"] = "apt"
-        return info
+        _distro_cache = info; _distro_cache_time = now
+        return _distro_cache.copy()
     if "uos" in combined or "uniontech" in combined:
         info["pkg_manager"] = "apt"  # UOS Desktop uses apt
-        return info
+        _distro_cache = info; _distro_cache_time = now
+        return _distro_cache.copy()
     for kws, pm in [
         (["arch", "manjaro", "endeavouros", "garuda"], "pacman"),
         (["ubuntu", "debian", "mint", "pop", "elementary", "zorin", "kali", "deepin", "uos", "ukylin", "bfsu"], "apt"),
@@ -35,7 +46,16 @@ def detect_distro():
         (["gentoo"], "emerge"),
     ]:
         if any(k in combined for k in kws): info["pkg_manager"] = pm; break
-    return info
+
+    # Fallback: file-based detection for distros not covered by os-release keywords
+    if info["pkg_manager"] == "unknown":
+        if os.path.exists("/etc/gentoo-release"):
+            info["pkg_manager"] = "emerge"
+            if info["id"] == "unknown":
+                info["id"] = "gentoo"
+
+    _distro_cache = info; _distro_cache_time = now
+    return _distro_cache.copy()
 
 
 def detect_aur_helper():

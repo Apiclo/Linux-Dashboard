@@ -10,7 +10,7 @@ const distro = ref<DistroInfo>({
 export function useDistro() {
   async function loadDistro() {
     try {
-      distro.value = await systemApi.getDistro()
+      distro.value = await systemApi.getDistroCached()
     } catch {}
   }
 

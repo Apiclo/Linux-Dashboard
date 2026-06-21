@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-"""PenguinFu Backend — API Server v0.1.1-dev"""
+"""TuxTackleBox Backend — API Server v0.1.1-dev"""
 import os
 import re
 import sys
+import time
 import json
 import logging
 
@@ -10,18 +11,19 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from flask import Flask, jsonify, session, request, send_from_directory, Response
 from utils.tasks import OUTPUT_QUEUES, start_cleanup_thread, cancel_task
-from utils.auth import authenticate, init_session_secret, require_auth
+from utils.auth import authenticate, init_session_secret
+from utils.helpers import require_auth
 
 # ── Load config ──
 _config_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "config.json")
 try:
     with open(_config_path) as f:
         CONFIG = json.load(f)
-except Exception:
+except (FileNotFoundError, json.JSONDecodeError, PermissionError):
     CONFIG = {"backend": {"host": "0.0.0.0", "port": 5000, "debug": False}, "auth": {"session_lifetime": 86400}}
 
 # ── Logging ──
-# 优先写入项目目录（开发环境），不可写则回退到 ~/.penguinfu（AppImage / 生产）
+# 优先写入项目目录（开发环境），不可写则回退到 ~/.tuxtacklebox（AppImage / 生产）
 _log_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "logs")
 try:
     os.makedirs(_log_dir, exist_ok=True)
@@ -30,7 +32,7 @@ try:
     with open(_test, "w") as f: f.write("")
     os.remove(_test)
 except (OSError, PermissionError):
-    _log_dir = os.path.expanduser("~/.penguinfu/logs")
+    _log_dir = os.path.expanduser("~/.tuxtacklebox/logs")
     os.makedirs(_log_dir, exist_ok=True)
 
 _handlers = [logging.StreamHandler()]
@@ -43,18 +45,57 @@ log = logging.getLogger("backend")
 
 # ── App ──
 app = Flask(__name__)
-app.config["MAX_CONTENT_LENGTH"] = 2 * 1024 * 1024 * 1024
+app.config["MAX_CONTENT_LENGTH"] = 200 * 1024 * 1024  # 200 MiB — covers offline GPU packages
 
 # 会话安全
-_session_dir = os.path.expanduser("~/.penguinfu/sessions")
+_session_dir = os.path.expanduser("~/.tuxtacklebox/sessions")
 os.makedirs(_session_dir, mode=0o700, exist_ok=True)
 app.config["SESSION_FILE_DIR"] = _session_dir
 app.config["SESSION_COOKIE_HTTPONLY"] = True
 app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
-app.config["SESSION_COOKIE_SECURE"] = CONFIG.get("auth", {}).get("session_secure", False)  # 生产环境应设为 True
+app.config["SESSION_COOKIE_SECURE"] = CONFIG.get("auth", {}).get("session_secure", True)
 app.config["PERMANENT_SESSION_LIFETIME"] = CONFIG.get("auth", {}).get("session_lifetime", 86400)
-os.makedirs("/tmp/penguinfu-uploads", exist_ok=True)
+os.makedirs("/tmp/tuxtacklebox-uploads", exist_ok=True)
 init_session_secret(app)
+
+# ── Audit logging ──
+_audit_dir = os.path.expanduser("~/.tuxtacklebox")
+_audit_log = os.path.join(_audit_dir, "audit.log")
+os.makedirs(_audit_dir, exist_ok=True)
+
+def _write_audit(action: str, detail: str = "") -> None:
+    """Append an audit entry to ~/.tuxtacklebox/audit.log."""
+    import datetime as _dt
+    user = session.get("username", "anonymous") if session else "anonymous"
+    ip = request.remote_addr or "127.0.0.1"
+    ts = _dt.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    detail_s = f": {detail}" if detail else ""
+    try:
+        with open(_audit_log, "a") as af:
+            af.write(f"{ts} | {user} | {ip} | {action}{detail_s}\n")
+    except OSError:
+        pass
+
+@app.before_request
+def _audit_writes():
+    """Log all mutating API requests for audit trail."""
+    if request.method in ("POST", "PUT", "DELETE", "PATCH") and request.path.startswith("/api/"):
+        _write_audit(request.method, f"{request.path}")
+
+# ── Login rate limiter (per-IP, in-memory) ──
+from collections import defaultdict as _dd
+_login_attempts: dict = _dd(list)
+
+@app.before_request
+def _rate_limit_login():
+    if request.path == "/api/auth/login" and request.method == "POST":
+        ip = request.remote_addr or "127.0.0.1"
+        now = time.time()
+        # Clean old attempts (>60s)
+        _login_attempts[ip] = [t for t in _login_attempts[ip] if now - t < 60]
+        if len(_login_attempts[ip]) >= 10:
+            return jsonify({"success": False, "code": "RATE_LIMITED", "message": "登录尝试过于频繁，请 60 秒后再试"}), 429
+        _login_attempts[ip].append(now)
 
 # ── Sudo access check ──
 import subprocess as _sp
@@ -66,14 +107,18 @@ except Exception:
     pass
 if not _sudo_ok and os.geteuid() != 0:
     log.warning("⚠ Backend user has NO passwordless sudo and is NOT root. Write operations (mount, install, etc.) will FAIL.")
-    log.warning("  Fix: run as root, OR add to /etc/sudoers.d/penguinfu:")
+    log.warning("  Fix: run as root, OR add to /etc/sudoers.d/tuxtacklebox:")
     log.warning(f"    {os.environ.get('USER', 'your-user')} ALL=(ALL) NOPASSWD: ALL")
 else:
     log.info("✓ Sudo/root access verified")
 
 # ── Register blueprints ──
-from routes import system, network, services, disk, packages, config, gpu, offline, raid, rescue
+from routes import system, network, services, disk, packages, config, gpu, offline, raid, rescue, storage
+from routes import system_boot, system_users, system_logs, system_processes, system_timers
 app.register_blueprint(system.bp)
+app.register_blueprint(system_boot.bp)
+app.register_blueprint(system_users.bp)
+app.register_blueprint(system_logs.bp)
 app.register_blueprint(network.bp)
 app.register_blueprint(services.bp)
 app.register_blueprint(disk.bp)
@@ -83,6 +128,9 @@ app.register_blueprint(gpu.bp)
 app.register_blueprint(offline.bp)
 app.register_blueprint(raid.bp)
 app.register_blueprint(rescue.bp)
+app.register_blueprint(storage.bp)
+app.register_blueprint(system_processes.bp)
+app.register_blueprint(system_timers.bp)
 
 
 # ── Global error handlers ──
@@ -100,6 +148,40 @@ def not_found(e):
 @app.errorhandler(500)
 def internal_error(e):
     return jsonify({"success": False, "message": "Internal server error"}), 500
+
+
+# ── CSRF protection ──
+# SPA with JSON-only API: require Content-Type: application/json for mutating
+# requests.  Cross-origin JSON requests trigger a CORS preflight (which we
+# don't allow), so this effectively prevents CSRF without tokens.
+@app.before_request
+def _csrf_check():
+    if request.method in ("POST", "PUT", "DELETE", "PATCH") and request.path.startswith("/api/"):
+        ct = (request.content_type or "").lower()
+        if "application/json" not in ct and "multipart/form-data" not in ct:
+            return jsonify({
+                "success": False,
+                "code": "CSRF_REJECTED",
+                "message": "Content-Type must be application/json or multipart/form-data",
+            }), 415
+
+
+# ── Content-Security-Policy ──
+@app.after_request
+def _add_csp(response):
+    response.headers["Content-Security-Policy"] = (
+        "default-src 'self'; "
+        "script-src 'self' 'unsafe-inline' 'unsafe-eval'; "
+        "style-src 'self' 'unsafe-inline'; "
+        "img-src 'self' data:; "
+        "font-src 'self'; "
+        "connect-src 'self' ws: wss:; "
+        "frame-ancestors 'none'; "
+        "base-uri 'self'"
+    )
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    return response
 
 
 # ── Serve frontend dist in production ──
@@ -123,7 +205,13 @@ def static_files(path):
     if path.startswith("api/"):
         return jsonify({"error": "Not found"}), 404
     if _has_frontend and os.path.exists(os.path.join(_dist_dir, path)):
-        return send_from_directory(_dist_dir, path)
+        resp = send_from_directory(_dist_dir, path)
+        # Vite-generated assets are content-hashed → cache 1 year
+        if any(path.endswith(ext) for ext in ('.js', '.css', '.woff2', '.woff', '.ttf', '.svg', '.png', '.ico')):
+            resp.headers['Cache-Control'] = 'public, max-age=31536000, immutable'
+        else:
+            resp.headers['Cache-Control'] = 'no-cache'
+        return resp
     if _has_frontend:
         return send_from_directory(_dist_dir, "index.html")
     return jsonify({"error": "Not found"}), 404
@@ -185,7 +273,10 @@ def stream(task_id):
             try:
                 msg_type, data = q.get(timeout=30)
                 heartbeat = 0
-                if msg_type == "output":
+                if msg_type == "heartbeat":
+                    # Task-level keep-alive — just reset counter, don't send to client
+                    continue
+                elif msg_type == "output":
                     yield f"data: {json.dumps({'type': 'output', 'line': data})}\n\n"
                 elif msg_type == "done":
                     yield f"data: {json.dumps({'type': 'done', 'code': data})}\n\n"
@@ -344,7 +435,7 @@ if __name__ == "__main__":
 
     print()
     print("  ╔═══════════════════════════════════════════════╗")
-    print("  ║           PenguinFu Backend v0.1.1-dev          ║")
+    print("  ║           TuxTackleBox Backend v0.1.1-dev          ║")
     print("  ╠═══════════════════════════════════════════════╣")
     print(f"  ║  API:     http://127.0.0.1:{port:<5}              ║")
     print(f"  ║  Auth:    Linux PAM                            ║")

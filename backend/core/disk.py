@@ -1,9 +1,8 @@
 """Disk management."""
 import os
-import re
 import json
 from typing import Dict, List, Tuple
-from utils.helpers import run_cmd, safe_quote
+from utils.helpers import run_cmd, safe_quote, validate_device_path, atomic_sudo_write
 
 
 def get_block_devices() -> List[Dict]:
@@ -29,22 +28,17 @@ def get_fstab() -> str:
 
 
 def save_fstab(content: str) -> bool:
-    from utils.helpers import safe_temp_file
-    tmp = safe_temp_file(suffix=".fstab", content=content)
-    try:
-        _, code = run_cmd(f"sudo cp {safe_quote(tmp)} /etc/fstab")
-        return code == 0
-    finally:
-        try: os.remove(tmp)
-        except OSError: pass
+    ok, _ = atomic_sudo_write('/etc/fstab', content)
+    return ok
 
 
 def mount_device(device: str, mountpoint: str, fstype: str = "auto") -> Tuple[str, int]:
     if not device or not mountpoint:
         return "设备和挂载点不能为空", -1
     # Validate device path
-    if not re.match(r'^/dev/[a-zA-Z0-9_/]+$', device):
-        return f"Invalid device path: {device}", -1
+    valid, msg = validate_device_path(device)
+    if not valid:
+        return msg, -1
     # Validate mountpoint (no traversal)
     real_mp = os.path.realpath(os.path.expanduser(mountpoint))
     if ".." in mountpoint or not real_mp.startswith("/"):
@@ -66,3 +60,25 @@ def get_disk_usage() -> str:
         # Fallback for BusyBox/Alpine
         out, _ = run_cmd("df -h 2>/dev/null")
     return out
+
+
+def get_disk_usage_structured() -> List[Dict]:
+    """Return structured disk usage data as a list of dicts."""
+    out, code = run_cmd("df -B1 --output=source,size,used,avail,pcent,target -x tmpfs -x devtmpfs -x efivarfs 2>/dev/null")
+    if code != 0:
+        out, _ = run_cmd("df -B1 2>/dev/null")
+    devices: List[Dict] = []
+    for line in out.splitlines():
+        if line.startswith("Filesystem") or not line.strip():
+            continue
+        parts = line.split()
+        if len(parts) >= 5:
+            devices.append({
+                "source": parts[0],
+                "size_bytes": int(parts[1]) if len(parts) > 1 and (parts[1].isdigit() or (parts[1].startswith("-") and parts[1][1:].isdigit())) else 0,
+                "used_bytes": int(parts[2]) if len(parts) > 2 and (parts[2].isdigit() or (parts[2].startswith("-") and parts[2][1:].isdigit())) else 0,
+                "avail_bytes": int(parts[3]) if len(parts) > 3 and (parts[3].isdigit() or (parts[3].startswith("-") and parts[3][1:].isdigit())) else 0,
+                "use_pct": parts[4] if len(parts) > 4 else "",
+                "target": parts[5] if len(parts) > 5 else "",
+            })
+    return devices

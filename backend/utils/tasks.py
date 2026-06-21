@@ -37,6 +37,21 @@ def get_queue(task_id: str) -> queue.Queue:
 def run_async(task_id: str, cmd: str) -> None:
     q = get_queue(task_id)
     proc = None
+    # Heartbeat: send a keep-alive event every 25s to prevent SSE timeout
+    heartbeat_stop = threading.Event()
+
+    def _send_heartbeat():
+        while not heartbeat_stop.is_set():
+            heartbeat_stop.wait(25)
+            if not heartbeat_stop.is_set():
+                try:
+                    q.put(("heartbeat", ""), timeout=1)
+                except queue.Full:
+                    pass
+
+    heartbeat_thread = threading.Thread(target=_send_heartbeat, daemon=True)
+    heartbeat_thread.start()
+
     try:
         log.info(f"Task {task_id}: {cmd[:120]}...")
         proc = subprocess.Popen(
@@ -57,6 +72,7 @@ def run_async(task_id: str, cmd: str) -> None:
         q.put(("error", str(e)))
         q.put(("done", -1))
     finally:
+        heartbeat_stop.set()
         _RUNNING_PROCESSES.pop(task_id, None)
         if proc and proc.poll() is None:
             try:

@@ -20,6 +20,13 @@ def usage():
     return jsonify({"usage": disk.get_disk_usage()})
 
 
+@bp.route("/api/disk/usage-structured")
+@safe_api
+@require_auth
+def usage_structured():
+    return jsonify({"devices": disk.get_disk_usage_structured()})
+
+
 @bp.route("/api/disk/fstab")
 @safe_api
 @require_auth

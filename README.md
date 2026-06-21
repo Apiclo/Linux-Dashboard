@@ -2,18 +2,19 @@
 
 一个简单的 Linux 系统监控面板，前后端分离架构。
 
-> ⚠️ 本项目 Vibe Coding 生成，代码未经严格审查，仅供参考。
+> ⚠️ 本项目全程 Vibe Coding ，代码未经严格审查，仅供参考。
+前半段opencode+mimo-2.5-pro，后半段claude code+deepseek-v4-pro
 
 ## 技术栈
 
 - 前端：Vue 3 + TypeScript + Element Plus
 - 后端：Flask + psutil
-- 实时通信：WebSocket
+- 终端通信：WebSocket
 
 ## 运行
 
 ```bash
-# 安装依赖
+# 安装
 bash install.sh
 
 # 启动
